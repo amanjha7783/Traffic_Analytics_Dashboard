@@ -1,0 +1,35 @@
+# Node modules
+node_modules/
+
+# Python Virtual Environments
+.venv/
+venv/
+env/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Build output
+dist/
+build/
+frontend/dist/
+frontend/build/
+
+# Environment Variables
+.env
+.env.local
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# NOTE: Do NOT ignore frontend/public/assets/*.mp4 or *.jpeg
+# The provided traffic video and images must remain in the repository for demo purposes.
