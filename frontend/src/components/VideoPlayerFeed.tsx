@@ -16,32 +16,21 @@ export const VideoPlayerFeed: React.FC<VideoPlayerFeedProps> = ({
   const [videoError, setVideoError] = useState(false);
 
   return (
-    <div className={`flex flex-col bg-surface-container-low rounded-xl overflow-hidden shadow-md ${isFullscreen ? 'fixed inset-4 z-50 bg-surface-container-lowest' : ''}`}>
-      {/* Stream Utility Header */}
-      <div className="px-space-md py-2.5 bg-surface-container flex flex-wrap items-center justify-between gap-space-sm border-b border-outline-variant/20">
-        <div className="flex items-center gap-space-sm">
-          <div className="w-2.5 h-2.5 rounded-full bg-error animate-pulse"></div>
-          <span className="font-label-caps text-label-caps text-on-surface uppercase tracking-wider font-bold">
-            Live Traffic Feed
+    <div className={`flex flex-col bg-surface-container-low rounded-xl overflow-hidden shadow-md border border-outline-variant/20 ${isFullscreen ? 'fixed inset-4 z-50 bg-surface-container-lowest' : ''}`}>
+      {/* Header */}
+      <div className="px-space-md py-3 bg-surface-container flex flex-wrap items-center justify-between gap-space-sm border-b border-outline-variant/20">
+        <span className="font-headline-sm text-on-surface font-semibold">
+          Live Traffic Feed
+        </span>
+        <button 
+          onClick={() => setIsFullscreen(!isFullscreen)}
+          className="text-on-surface-variant hover:text-primary transition-colors p-1" 
+          title={isFullscreen ? "Exit Fullscreen" : "Maximize View"}
+        >
+          <span className="material-symbols-outlined text-[18px]">
+            {isFullscreen ? "fullscreen_exit" : "fullscreen"}
           </span>
-          <span className="hidden sm:inline-block px-2 py-0.5 rounded bg-surface-container-high text-primary font-data-mono-sm text-data-mono-sm">
-            RTSP Stream #01
-          </span>
-        </div>
-        <div className="flex items-center gap-space-sm">
-          <span className="px-2 py-0.5 rounded bg-surface-container-highest text-tertiary font-label-caps text-label-caps">
-            YOLOv8x + ByteTrack
-          </span>
-          <button 
-            onClick={() => setIsFullscreen(!isFullscreen)}
-            className="text-on-surface-variant hover:text-primary transition-colors p-1" 
-            title={isFullscreen ? "Exit Fullscreen" : "Maximize View"}
-          >
-            <span className="material-symbols-outlined text-[18px]">
-              {isFullscreen ? "fullscreen_exit" : "fullscreen"}
-            </span>
-          </button>
-        </div>
+        </button>
       </div>
 
       {/* Main Video Viewport */}
@@ -70,34 +59,13 @@ export const VideoPlayerFeed: React.FC<VideoPlayerFeedProps> = ({
             <span className="font-body-sm text-on-surface-variant">Check that the video asset exists in frontend/public/assets/video/</span>
           </div>
         )}
-
-        {/* Top-Left CV Pipeline HUD Tag */}
-        <div className="absolute top-3 left-3 flex flex-col gap-1 z-20 pointer-events-none">
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-surface-container-lowest/85 backdrop-blur-md shadow-sm border border-outline-variant/20">
-            <span className="h-2 w-2 rounded-full bg-tertiary animate-ping"></span>
-            <span className="font-label-caps text-label-caps uppercase text-tertiary tracking-wider font-semibold">
-              PROCESSING • 30.2 FPS
-            </span>
-          </div>
-        </div>
-
-        {/* Top-Right Resolution Badge */}
-        <div className="absolute top-3 right-3 z-20 pointer-events-none">
-          <div className="px-2.5 py-1 rounded bg-surface-container-lowest/85 backdrop-blur-md font-data-mono-sm text-data-mono-sm text-primary flex items-center gap-1.5 shadow-sm border border-outline-variant/20">
-            <span className="material-symbols-outlined text-[14px]">videocam</span>
-            1920x1080 • 1080p@30fps
-          </div>
-        </div>
       </div>
 
-      {/* Subtitle Tag */}
-      <div className="px-space-md py-2 bg-surface-container-low flex flex-wrap items-center justify-between text-on-surface-variant font-body-sm text-body-sm border-t border-outline-variant/10">
+      {/* Subtitle Footer */}
+      <div className="px-space-md py-2.5 bg-surface-container-low flex flex-wrap items-center text-on-surface-variant font-body-sm border-t border-outline-variant/10">
         <span className="flex items-center gap-1.5 text-primary">
-          <span className="material-symbols-outlined text-[15px]">model_training</span>
+          <span className="material-symbols-outlined text-[16px]">videocam</span>
           Annotated Computer Vision Output
-        </span>
-        <span className="font-data-mono-sm text-data-mono-sm text-on-surface-variant">
-          Model latency: 18.2ms • GPU Load: 44%
         </span>
       </div>
     </div>

@@ -4,12 +4,11 @@ import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
 import { KpiRow } from './components/KpiRow';
 import { VideoPlayerFeed } from './components/VideoPlayerFeed';
-import { TrafficOverviewCard } from './components/TrafficOverviewCard';
 import { TrajectoriesSection } from './components/TrajectoriesSection';
 import { RiskHeatmapSection } from './components/RiskHeatmapSection';
 import { AnalyticsCharts } from './components/AnalyticsCharts';
 import { AiInsightsSection } from './components/AiInsightsSection';
-import { ArchitecturePipeline } from './components/ArchitecturePipeline';
+import { OverviewTrajectoriesSummary } from './components/OverviewTrajectoriesSummary';
 import { TrafficMonitorView } from './components/TrafficMonitorView';
 import { ReportsView } from './components/ReportsView';
 import { SettingsModal } from './components/SettingsModal';
@@ -48,6 +47,21 @@ export default function App() {
   const [selectedVehicleId, setSelectedVehicleId] = useState<string>('V-024');
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
+  
+  // Theme State
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    const saved = localStorage.getItem('theme');
+    return (saved === 'light' || saved === 'dark') ? saved : 'dark';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('theme', theme);
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [theme]);
 
   // Real API State
   const [summaryData, setSummaryData] = useState<any>({});
@@ -63,7 +77,6 @@ export default function App() {
         const timeData = await fetchVehiclesOverTime();
         const trajData = await fetchTrajectories();
         
-        // Group raw point trajectories by vehicle_id to get the latest position
         const latestPositions = new Map();
         if (Array.isArray(trajData)) {
             trajData.forEach((pt: any) => {
@@ -109,8 +122,19 @@ export default function App() {
     return () => clearInterval(interval);
   }, []);
 
+  const flowRate = Math.round((summaryData.total_vehicles || 0) / 3);
+  const density = Math.min(100, Math.round((summaryData.total_vehicles || 0) * 1.5));
+  const conflictPoints = summaryData.risk_level === 'High' ? 4 : summaryData.risk_level === 'Medium' ? 2 : 0;
+  
+  const getTrafficStatusLabel = () => {
+    if (density < 40) return { label: 'Normal Flow', color: 'text-tertiary', dot: 'bg-tertiary' };
+    if (density < 75) return { label: 'Moderate Traffic', color: 'text-amber-500', dot: 'bg-amber-500' };
+    return { label: 'High Congestion', color: 'text-error', dot: 'bg-error' };
+  };
+  const trafficStatus = getTrafficStatusLabel();
+
   return (
-    <div className="min-h-screen bg-background font-body-md text-on-surface antialiased flex">
+    <div className="min-h-screen bg-background font-body-md text-on-surface antialiased flex transition-colors duration-300">
       <Sidebar
         activeTab={activeTab}
         onSelectTab={setActiveTab}
@@ -125,9 +149,11 @@ export default function App() {
           allCameras={MOCK_CAMERAS}
           onSelectCamera={setCurrentCamera}
           onToggleMobileMenu={() => setIsMobileMenuOpen(true)}
+          theme={theme}
+          onToggleTheme={() => setTheme(prev => prev === 'dark' ? 'light' : 'dark')}
         />
 
-        <main className="relative w-full pt-16 bg-background px-space-md lg:px-gutter-lg py-space-lg">
+        <main className="relative w-full bg-background px-space-md lg:px-gutter-lg py-space-lg">
           {apiError ? (
              <div className="w-full p-space-xl bg-surface-container-low rounded-xl border border-error/20 flex flex-col items-center justify-center text-center">
                  <span className="material-symbols-outlined text-[48px] text-error mb-4">error</span>
@@ -141,49 +167,86 @@ export default function App() {
              </div>
           ) : activeTab === 'overview' && (
             <div className="flex flex-col w-full gap-space-lg pb-space-2xl">
+              
               <KpiRow 
                  totalVehicles={summaryData.total_vehicles}
                  activeTracks={summaryData.active_tracks}
                  avgSpeed={summaryData.average_speed}
                  riskScore={summaryData.risk_score}
-                 trafficDensity={Math.min(100, Math.round((summaryData.total_vehicles || 0) * 1.5))}
-                 conflictZones={summaryData.risk_level === 'High' ? 4 : summaryData.risk_level === 'Medium' ? 2 : 0}
+                 trafficDensity={density}
+                 conflictZones={conflictPoints}
               />
 
-              <section className="grid grid-cols-1 lg:grid-cols-12 gap-space-lg items-stretch">
-                <div className="lg:col-span-8 flex flex-col">
-                  <VideoPlayerFeed
-                    currentCamera={currentCamera}
-                    vehicleTracks={trajectoriesData}
-                    selectedVehicleId={selectedVehicleId}
-                    onSelectVehicle={setSelectedVehicleId}
-                  />
-                </div>
-                <div className="lg:col-span-4 flex flex-col">
-                  <TrafficOverviewCard
-                    onViewDetailedAnalytics={() => setActiveTab('analytics')}
-                  />
-                </div>
-              </section>
+              {/* LIVE TRAFFIC FEED */}
+              <div className="flex flex-col">
+                <VideoPlayerFeed
+                  currentCamera={currentCamera}
+                  vehicleTracks={trajectoriesData}
+                  selectedVehicleId={selectedVehicleId}
+                  onSelectVehicle={setSelectedVehicleId}
+                />
+              </div>
 
-              <TrajectoriesSection
-                vehicleTracks={trajectoriesData}
-                selectedVehicleId={selectedVehicleId}
-                onSelectVehicle={setSelectedVehicleId}
-              />
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-space-lg">
+                {/* CURRENT TRAFFIC STATUS */}
+                <div className="bg-surface-container-low p-space-lg rounded-xl border border-outline-variant/20 shadow-sm flex flex-col">
+                  <span className="font-headline-md text-on-surface font-semibold mb-4">Current Traffic Status</span>
+                  <div className="flex items-center gap-2 mb-6">
+                    <span className={`w-3 h-3 rounded-full ${trafficStatus.dot}`}></span>
+                    <span className={`font-headline-sm font-bold ${trafficStatus.color}`}>{trafficStatus.label}</span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="flex flex-col">
+                      <span className="text-on-surface-variant text-sm mb-1">Density</span>
+                      <span className="font-display-lg text-on-surface">{density}%</span>
+                    </div>
+                    <div className="flex flex-col border-l border-outline-variant/20 pl-4">
+                      <span className="text-on-surface-variant text-sm mb-1">Speed</span>
+                      <span className="font-display-lg text-on-surface">{summaryData.average_speed?.toFixed(1) || '--'}</span>
+                    </div>
+                    <div className="flex flex-col border-l border-outline-variant/20 pl-4">
+                      <span className="text-on-surface-variant text-sm mb-1">Flow</span>
+                      <span className="font-display-lg text-on-surface">{flowRate || '--'}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* COLLISION RISK */}
+                <div className="bg-surface-container-low p-space-lg rounded-xl border border-outline-variant/20 shadow-sm flex flex-col">
+                  <span className="font-headline-md text-on-surface font-semibold mb-4">Collision Risk</span>
+                  <div className="grid grid-cols-3 gap-4 h-full">
+                    <div className="flex flex-col">
+                      <span className="text-on-surface-variant text-sm mb-1">Risk Score</span>
+                      <span className="font-display-lg text-amber-500 font-bold">{summaryData.risk_score || '--'} <span className="text-sm font-normal text-on-surface-variant">/ 100</span></span>
+                    </div>
+                    <div className="flex flex-col border-l border-outline-variant/20 pl-4">
+                      <span className="text-on-surface-variant text-sm mb-1">Conflict Points</span>
+                      <span className="font-display-lg text-on-surface">{conflictPoints}</span>
+                    </div>
+                    <div className="flex flex-col border-l border-outline-variant/20 pl-4">
+                      <span className="text-on-surface-variant text-sm mb-1">TTC Alerts</span>
+                      <span className="font-display-lg text-on-surface">2</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
 
               <RiskHeatmapSection
                 onViewRiskBreakdown={() => setActiveTab('reports')}
               />
 
-              <AnalyticsCharts data={chartData} />
+              <OverviewTrajectoriesSummary 
+                vehicleTracks={trajectoriesData}
+                onViewTrajectories={() => setActiveTab('trajectories')}
+              />
 
-              <AiInsightsSection />
-              <ArchitecturePipeline />
+              <AiInsightsSection 
+                onViewAnalytics={() => setActiveTab('analytics')}
+              />
             </div>
           )}
 
-          {/* Render other tabs... omitted for brevity, keeping existing structure */}
+          {/* Render other tabs */}
           {!isLoading && !apiError && activeTab === 'traffic-monitor' && (
             <div className="flex flex-col w-full pb-space-2xl">
               <TrafficMonitorView
@@ -220,8 +283,8 @@ export default function App() {
                  activeTracks={summaryData.active_tracks}
                  avgSpeed={summaryData.average_speed}
                  riskScore={summaryData.risk_score}
-                 trafficDensity={Math.min(100, Math.round((summaryData.total_vehicles || 0) * 1.5))}
-                 conflictZones={summaryData.risk_level === 'High' ? 4 : summaryData.risk_level === 'Medium' ? 2 : 0}
+                 trafficDensity={density}
+                 conflictZones={conflictPoints}
               />
               <AnalyticsCharts data={chartData} />
             </div>

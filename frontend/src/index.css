@@ -2,6 +2,46 @@
 
 @layer base {
   :root {
+    /* LIGHT THEME (Clean, Professional) */
+    --color-background: #f5f7fa;
+    --color-surface: #ffffff;
+    --color-surface-dim: #e4e7eb;
+    --color-surface-bright: #ffffff;
+    --color-surface-container-lowest: #ffffff;
+    --color-surface-container-low: #f8fafc;
+    --color-surface-container: #f1f5f9;
+    --color-surface-container-high: #e2e8f0;
+    --color-surface-container-highest: #cbd5e1;
+    
+    --color-on-background: #0f172a;
+    --color-on-surface: #1e293b;
+    --color-on-surface-variant: #64748b;
+    --color-outline: #94a3b8;
+    --color-outline-variant: #cbd5e1;
+    
+    --color-primary: #0284c7;
+    --color-primary-container: #e0f2fe;
+    --color-on-primary: #ffffff;
+    --color-on-primary-container: #0369a1;
+    
+    --color-secondary: #0f172a;
+    --color-secondary-container: #e2e8f0;
+    --color-on-secondary: #ffffff;
+    --color-on-secondary-container: #0f172a;
+    
+    --color-tertiary: #059669;
+    --color-tertiary-container: #d1fae5;
+    --color-on-tertiary: #ffffff;
+    --color-on-tertiary-container: #065f46;
+    
+    --color-error: #dc2626;
+    --color-error-container: #fee2e2;
+    --color-on-error: #ffffff;
+    --color-on-error-container: #991b1b;
+  }
+
+  .dark {
+    /* DARK THEME (Existing Professional Dark) */
     --color-background: #0f131c;
     --color-surface: #0f131c;
     --color-surface-dim: #0f131c;
@@ -42,8 +82,8 @@
   html, body {
     margin: 0;
     padding: 0;
-    background-color: #0f131c;
-    color: #dfe2ee;
+    background-color: var(--color-background);
+    color: var(--color-on-background);
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     overscroll-behavior: none;
   }
@@ -53,57 +93,58 @@
     height: 6px;
   }
   ::-webkit-scrollbar-track {
-    background: #0a0e16;
+    background: var(--color-surface-container-lowest);
   }
   ::-webkit-scrollbar-thumb {
-    background: #262a33;
+    background: var(--color-surface-container-high);
     border-radius: 3px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: #3d494c;
+    background: var(--color-outline-variant);
   }
 }
 
 /* Custom Semantic Background and Text Color Utilities */
-.bg-background { background-color: #0f131c; }
-.bg-surface { background-color: #0f131c; }
-.bg-surface-container-lowest { background-color: #0a0e16; }
-.bg-surface-container-low { background-color: #181c24; }
-.bg-surface-container { background-color: #1c2028; }
-.bg-surface-container-high { background-color: #262a33; }
-.bg-surface-container-highest { background-color: #31353e; }
+.bg-background { background-color: var(--color-background); }
+.bg-surface { background-color: var(--color-surface); }
+.bg-surface-container-lowest { background-color: var(--color-surface-container-lowest); }
+.bg-surface-container-low { background-color: var(--color-surface-container-low); }
+.bg-surface-container { background-color: var(--color-surface-container); }
+.bg-surface-container-high { background-color: var(--color-surface-container-high); }
+.bg-surface-container-highest { background-color: var(--color-surface-container-highest); }
 
-.bg-primary { background-color: #4cd7f6; }
-.bg-primary-container { background-color: #06b6d4; }
-.bg-secondary { background-color: #adc6ff; }
-.bg-secondary-container { background-color: #0566d9; }
-.bg-tertiary { background-color: #4edea3; }
-.bg-tertiary-container { background-color: #1bbd85; }
-.bg-error { background-color: #ef4444; }
-.bg-error-container { background-color: #93000a; }
+.bg-primary { background-color: var(--color-primary); }
+.bg-primary-container { background-color: var(--color-primary-container); }
+.bg-secondary { background-color: var(--color-secondary); }
+.bg-secondary-container { background-color: var(--color-secondary-container); }
+.bg-tertiary { background-color: var(--color-tertiary); }
+.bg-tertiary-container { background-color: var(--color-tertiary-container); }
+.bg-error { background-color: var(--color-error); }
+.bg-error-container { background-color: var(--color-error-container); }
 
-.text-background { color: #0f131c; }
-.text-on-background { color: #dfe2ee; }
-.text-surface { color: #0f131c; }
-.text-on-surface { color: #dfe2ee; }
-.text-on-surface-variant { color: #bcc9cd; }
-.text-primary { color: #4cd7f6; }
-.text-on-primary { color: #003640; }
-.text-primary-container { color: #06b6d4; }
-.text-on-primary-container { color: #00424f; }
-.text-secondary { color: #adc6ff; }
-.text-on-secondary { color: #002e6a; }
-.text-tertiary { color: #4edea3; }
-.text-on-tertiary { color: #003824; }
-.text-error { color: #ffb4ab; }
-.text-on-error { color: #690005; }
-.text-outline { color: #869397; }
+.text-background { color: var(--color-background); }
+.text-on-background { color: var(--color-on-background); }
+.text-surface { color: var(--color-surface); }
+.text-on-surface { color: var(--color-on-surface); }
+.text-on-surface-variant { color: var(--color-on-surface-variant); }
+.text-primary { color: var(--color-primary); }
+.text-on-primary { color: var(--color-on-primary); }
+.text-primary-container { color: var(--color-primary-container); }
+.text-on-primary-container { color: var(--color-on-primary-container); }
+.text-secondary { color: var(--color-secondary); }
+.text-on-secondary { color: var(--color-on-secondary); }
+.text-tertiary { color: var(--color-tertiary); }
+.text-on-tertiary { color: var(--color-on-tertiary); }
+.text-error { color: var(--color-error); }
+.text-on-error { color: var(--color-on-error); }
+.text-outline { color: var(--color-outline); }
 
-.border-outline-variant\/10 { border-color: rgba(61, 73, 76, 0.1); }
-.border-outline-variant\/20 { border-color: rgba(61, 73, 76, 0.2); }
-.border-outline-variant\/30 { border-color: rgba(61, 73, 76, 0.3); }
-.border-outline-variant\/40 { border-color: rgba(61, 73, 76, 0.4); }
-.border-outline-variant\/50 { border-color: rgba(61, 73, 76, 0.5); }
+/* In Tailwind v4, we use rgb variables for opacity modifiers, but for now we'll just map the border directly or rely on the var if it doesn't use alpha */
+.border-outline-variant\/10 { border-color: color-mix(in srgb, var(--color-outline-variant) 10%, transparent); }
+.border-outline-variant\/20 { border-color: color-mix(in srgb, var(--color-outline-variant) 20%, transparent); }
+.border-outline-variant\/30 { border-color: color-mix(in srgb, var(--color-outline-variant) 30%, transparent); }
+.border-outline-variant\/40 { border-color: color-mix(in srgb, var(--color-outline-variant) 40%, transparent); }
+.border-outline-variant\/50 { border-color: color-mix(in srgb, var(--color-outline-variant) 50%, transparent); }
 
 /* Spacing Variables */
 .p-space-xs { padding: 0.25rem; }
