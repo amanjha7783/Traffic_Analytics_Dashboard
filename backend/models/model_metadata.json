@@ -1,0 +1,45 @@
+{
+  "model_type": "XGBoost Regressor (120 estimators, max_depth=5)",
+  "features_used": [
+    "hour",
+    "day_of_week",
+    "is_weekend",
+    "is_peak_hour",
+    "road_length_km",
+    "num_lanes",
+    "speed_limit_kmh",
+    "road_segment_code",
+    "volume"
+  ],
+  "target": "travel_time_seconds",
+  "dataset_size": 5768,
+  "train_samples": 4037,
+  "val_samples": 865,
+  "test_samples": 866,
+  "data_split": "Chronological (70/15/15)",
+  "date_range": {
+    "start": "2026-09-25 16:00:00",
+    "end": "2026-10-25 16:00:00"
+  },
+  "baseline_metrics": {
+    "model": "Historical Group Mean (Segment + Hour)",
+    "mae": 17.01,
+    "rmse": 26.31,
+    "r2": 0.8851
+  },
+  "xgboost_metrics": {
+    "mae": 55.43,
+    "rmse": 65.79,
+    "r2": 0.2816
+  },
+  "mae": 55.43,
+  "rmse": 65.79,
+  "r2_score": 0.2816,
+  "training_records": 4037,
+  "training_date": "2026-10-25T16:08:15.920770",
+  "limitations": [
+    "Trained on synthetic demonstration traffic data generated using the BPR formula",
+    "Real deployment requires sensor data from loop detectors or GPS probe feeds",
+    "Weather and major incident impact are not yet modeled"
+  ]
+}

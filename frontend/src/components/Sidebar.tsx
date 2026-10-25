@@ -18,6 +18,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const navItems: { id: NavTab; label: string; icon: string }[] = [
     { id: 'overview', label: 'Overview', icon: 'dashboard' },
+    { id: 'route-planner', label: 'Route Planner', icon: 'directions' },
+    { id: 'traffic-forecast', label: 'Traffic Forecast', icon: 'trending_up' },
+    { id: 'historical-analytics', label: 'Historical Analytics', icon: 'analytics' },
     { id: 'traffic-monitor', label: 'Traffic Monitor', icon: 'videocam' },
     { id: 'trajectories', label: 'Trajectories', icon: 'timeline' },
     { id: 'risk-heatmap', label: 'Risk Heatmap', icon: 'crisis_alert' },

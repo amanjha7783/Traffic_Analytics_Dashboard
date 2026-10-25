@@ -12,6 +12,9 @@ import { OverviewTrajectoriesSummary } from './components/OverviewTrajectoriesSu
 import { TrafficMonitorView } from './components/TrafficMonitorView';
 import { ReportsView } from './components/ReportsView';
 import { SettingsModal } from './components/SettingsModal';
+import { RoutePlanner } from './pages/RoutePlanner';
+import { HistoricalAnalytics } from './pages/HistoricalAnalytics';
+import { TrafficForecast } from './pages/TrafficForecast';
 import { fetchSummary, fetchVehiclesOverTime, fetchTrajectories } from './services/api';
 
 const MOCK_CAMERAS: CameraStream[] = [
@@ -154,13 +157,13 @@ export default function App() {
         />
 
         <main className="relative w-full bg-background px-space-md lg:px-gutter-lg py-space-lg">
-          {apiError ? (
+          {apiError && ['overview', 'trajectories', 'analytics', 'risk-heatmap', 'traffic-monitor'].includes(activeTab) ? (
              <div className="w-full p-space-xl bg-surface-container-low rounded-xl border border-error/20 flex flex-col items-center justify-center text-center">
                  <span className="material-symbols-outlined text-[48px] text-error mb-4">error</span>
                  <h2 className="font-headline-lg text-headline-lg text-on-surface">{apiError}</h2>
                  <p className="text-on-surface-variant mt-2 font-body-lg">Verify that the FastAPI server is running on http://localhost:8000.</p>
              </div>
-          ) : isLoading ? (
+          ) : isLoading && ['overview', 'trajectories', 'analytics', 'risk-heatmap', 'traffic-monitor'].includes(activeTab) ? (
              <div className="w-full flex items-center justify-center p-space-2xl text-on-surface-variant">
                 <span className="material-symbols-outlined animate-spin text-[32px] text-primary">sync</span>
                 <span className="ml-4 font-headline-sm">Loading traffic data...</span>
@@ -288,6 +291,18 @@ export default function App() {
               />
               <AnalyticsCharts data={chartData} />
             </div>
+          )}
+
+          {activeTab === 'route-planner' && (
+            <RoutePlanner />
+          )}
+
+          {activeTab === 'traffic-forecast' && (
+            <TrafficForecast />
+          )}
+
+          {activeTab === 'historical-analytics' && (
+            <HistoricalAnalytics />
           )}
 
           {!isLoading && !apiError && activeTab === 'reports' && (
