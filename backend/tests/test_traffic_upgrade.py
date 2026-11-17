@@ -30,6 +30,20 @@ def test_corridor_router_is_registered():
     assert response.status_code == 200
     assert "corridors" in response.json()
 
+
+def test_corridor_requires_distinct_cameras():
+    response = client.post(
+        "/api/corridors",
+        json={
+            "name": "Same camera corridor",
+            "camera_a_id": "camera-1",
+            "camera_b_id": "camera-1",
+        },
+    )
+    assert response.status_code == 422
+    assert response.json()["detail"] == "A corridor requires two distinct cameras"
+
+
 def test_camera_api_never_exposes_stream_urls_or_local_paths():
     response = client.get("/api/cameras")
     assert response.status_code == 200
@@ -44,6 +58,16 @@ def test_model_catalog_reports_three_wheeler_as_unavailable():
     model = response.json()["models"][0]
     assert "THREE-WHEELER" in model["unavailable_categories"]
     assert "THREE-WHEELER" not in model["supported_categories"]
+
+
+def test_video_upload_rejects_mismatched_mime_type():
+    response = client.post(
+        "/api/video-processing",
+        files={"file": ("recording.mp4", b"not-video", "text/plain")},
+    )
+    assert response.status_code == 415
+    assert "does not match" in response.json()["detail"]
+
 
 def test_latest_completed_video_endpoint_returns_annotated_export(tmp_path, monkeypatch):
     db_path = tmp_path / "latest-video.sqlite"
@@ -73,6 +97,20 @@ def test_latest_completed_video_endpoint_returns_annotated_export(tmp_path, monk
         )
         conn.execute(
             """
+            UPDATE video_processing_sessions
+            SET count_summary_csv = ?, track_details_csv = ?, minute_wise_csv = ?,
+                output_directory = ?
+            WHERE session_id = 'completed-session'
+            """,
+            (
+                str(output_dir / "count-summary.csv"),
+                str(output_dir / "track-details.csv"),
+                str(output_dir / "minute-counts.csv"),
+                str(output_dir),
+            ),
+        )
+        conn.execute(
+            """
             INSERT INTO video_processing_sessions (
                 session_id, video_name, camera_id, video_source_path, status,
                 start_time, end_time
@@ -87,10 +125,215 @@ def test_latest_completed_video_endpoint_returns_annotated_export(tmp_path, monk
     assert result["session_id"] == "completed-session"
     assert result["summary"]["category_counts"]["BUS"] == 2
     assert result["exports"]["annotated_video"].endswith("/files/annotated_video")
-    assert "video_source_path" not in result
+    private_fields = {
+        "annotated_video_path",
+        "count_summary_csv",
+        "track_details_csv",
+        "minute_wise_csv",
+        "processing_summary_json",
+        "output_directory",
+    }
+    assert private_fields.isdisjoint(result)
+    assert "private-source-path" not in response.text
+    assert str(output_dir) not in response.text
+    status_response = client.get("/api/video-processing/completed-session")
+    assert status_response.status_code == 200
+    assert private_fields.isdisjoint(status_response.json())
+    assert str(output_dir) not in status_response.text
     media_response = client.get(result["exports"]["annotated_video"])
     assert media_response.status_code == 200
     assert media_response.headers["content-disposition"].startswith("inline;")
+
+
+def test_latest_completed_video_falls_back_to_existing_disk_exports(tmp_path, monkeypatch):
+    output_dir = tmp_path / "exports"
+    job_dir = output_dir / "completed-job"
+    job_dir.mkdir(parents=True)
+    video_path = job_dir / "annotated_browser.mp4"
+    video_path.write_bytes(b"browser-video")
+    (job_dir / "vehicle_count_summary.csv").write_text("class,count\nBUS,2\n", encoding="utf-8")
+    (job_dir / "processing_summary.json").write_text(
+        json.dumps({
+            "session_id": "completed-job",
+            "status": "COMPLETED",
+            "video_filename": "recording.mp4",
+            "category_counts": {"BUS": 2},
+        }),
+        encoding="utf-8",
+    )
+
+    class ReadableVideo:
+        def __init__(self, _path):
+            pass
+
+        def isOpened(self):
+            return True
+
+        def get(self, property_id):
+            return {
+                video_processing_routes.cv2.CAP_PROP_FRAME_WIDTH: 640,
+                video_processing_routes.cv2.CAP_PROP_FRAME_HEIGHT: 360,
+                video_processing_routes.cv2.CAP_PROP_FPS: 10,
+                video_processing_routes.cv2.CAP_PROP_FRAME_COUNT: 20,
+            }.get(property_id, 0)
+
+        def read(self):
+            return True, np.zeros((2, 2, 3), dtype=np.uint8)
+
+        def release(self):
+            pass
+
+    monkeypatch.setattr(video_processing_routes, "OUTPUT_DIR", output_dir)
+    monkeypatch.setattr(
+        video_processing_routes, "PRIMARY_ANNOTATED_VIDEO_PATH", video_path
+    )
+    monkeypatch.setattr(
+        video_processing_routes, "get_latest_completed_video_session", lambda: None
+    )
+    monkeypatch.setattr(video_processing_routes.cv2, "VideoCapture", ReadableVideo)
+
+    response = client.get("/api/video-processing/latest")
+    assert response.status_code == 200
+    result = response.json()
+    assert result["session_id"] == "completed-job"
+    assert result["summary"]["category_counts"]["BUS"] == 2
+    assert "count_summary" in result["exports"]
+    assert "annotated_video" in result["exports"]
+    assert str(output_dir) not in response.text
+
+    csv_response = client.get(result["exports"]["count_summary"])
+    assert csv_response.status_code == 200
+    assert csv_response.text == "class,count\nBUS,2\n"
+    video_response = client.get(result["exports"]["annotated_video"])
+    assert video_response.status_code == 200
+    assert video_response.content == b"browser-video"
+
+
+def test_annotated_recordings_are_distinct_and_support_byte_ranges(tmp_path, monkeypatch):
+    output_dir = tmp_path / "exports"
+    primary_dir = output_dir / "primary-job"
+    second_dir = output_dir / "second-job"
+    primary_dir.mkdir(parents=True)
+    second_dir.mkdir()
+    primary_path = primary_dir / "annotated_browser.mp4"
+    primary_path.write_bytes(b"primary-video-bytes")
+    (primary_dir / "annotated.mp4").write_bytes(b"same-job-alternative")
+    second_path = second_dir / "annotated.mp4"
+    second_path.write_bytes(b"second-video-bytes")
+    (primary_dir / "processing_summary.json").write_text(
+        json.dumps({
+            "session_id": "primary-job",
+            "status": "COMPLETED",
+            "category_counts": {"CAR": 1},
+            "total_motor_vehicles": 1,
+        }),
+        encoding="utf-8",
+    )
+    (second_dir / "processing_summary.json").write_text(
+        json.dumps({
+            "session_id": "second-job",
+            "status": "PARTIAL",
+            "is_partial": True,
+            "category_counts": {"BUS": 2},
+        }),
+        encoding="utf-8",
+    )
+
+    class ReadableVideo:
+        def __init__(self, _path):
+            pass
+
+        def isOpened(self):
+            return True
+
+        def get(self, property_id):
+            return {
+                video_processing_routes.cv2.CAP_PROP_FRAME_WIDTH: 640,
+                video_processing_routes.cv2.CAP_PROP_FRAME_HEIGHT: 360,
+                video_processing_routes.cv2.CAP_PROP_FPS: 10,
+                video_processing_routes.cv2.CAP_PROP_FRAME_COUNT: 20,
+            }.get(property_id, 0)
+
+        def read(self):
+            return True, np.zeros((2, 2, 3), dtype=np.uint8)
+
+        def release(self):
+            pass
+
+    monkeypatch.setattr(video_processing_routes, "OUTPUT_DIR", output_dir)
+    monkeypatch.setattr(
+        video_processing_routes, "PRIMARY_ANNOTATED_VIDEO_PATH", primary_path
+    )
+    monkeypatch.setattr(video_processing_routes.cv2, "VideoCapture", ReadableVideo)
+
+    response = client.get("/api/video-processing/recordings")
+    assert response.status_code == 200
+    recordings = response.json()["recordings"]
+    assert [item["recording_id"] for item in recordings] == ["primary-job", "second-job"]
+    assert recordings[0]["available"] is True
+    assert recordings[1]["summary"]["is_partial"] is True
+    assert recordings[0]["stream_url"] != recordings[1]["stream_url"]
+    assert str(output_dir) not in response.text
+
+    ranged = client.get(
+        recordings[1]["stream_url"],
+        headers={"Range": "bytes=2-7"},
+    )
+    assert ranged.status_code == 206
+    assert ranged.content == b"cond-v"
+    assert ranged.headers["content-range"] == f"bytes 2-7/{second_path.stat().st_size}"
+    assert ranged.headers["content-type"].startswith("video/mp4")
+    assert ranged.headers["accept-ranges"] == "bytes"
+
+    invalid_range = client.get(
+        recordings[1]["stream_url"],
+        headers={"Range": f"bytes={second_path.stat().st_size}-"},
+    )
+    assert invalid_range.status_code == 416
+    assert client.get("/api/video-processing/recordings/not-a-job/stream").status_code == 404
+
+
+def test_missing_second_annotated_video_has_explicit_unavailable_state(tmp_path, monkeypatch):
+    output_dir = tmp_path / "exports"
+    job_dir = output_dir / "primary-job"
+    job_dir.mkdir(parents=True)
+    primary_path = job_dir / "annotated_browser.mp4"
+    primary_path.write_bytes(b"primary-video")
+
+    class ReadableVideo:
+        def __init__(self, _path):
+            pass
+
+        def isOpened(self):
+            return True
+
+        def get(self, property_id):
+            return {
+                video_processing_routes.cv2.CAP_PROP_FRAME_WIDTH: 640,
+                video_processing_routes.cv2.CAP_PROP_FRAME_HEIGHT: 360,
+                video_processing_routes.cv2.CAP_PROP_FPS: 10,
+                video_processing_routes.cv2.CAP_PROP_FRAME_COUNT: 20,
+            }.get(property_id, 0)
+
+        def read(self):
+            return True, np.zeros((2, 2, 3), dtype=np.uint8)
+
+        def release(self):
+            pass
+
+    monkeypatch.setattr(video_processing_routes, "OUTPUT_DIR", output_dir)
+    monkeypatch.setattr(
+        video_processing_routes, "PRIMARY_ANNOTATED_VIDEO_PATH", primary_path
+    )
+    monkeypatch.setattr(video_processing_routes.cv2, "VideoCapture", ReadableVideo)
+
+    response = client.get("/api/video-processing/recordings")
+    assert response.status_code == 200
+    recordings = response.json()["recordings"]
+    assert recordings[0]["available"] is True
+    assert recordings[1]["available"] is False
+    assert "Second annotated video not available" in recordings[1]["error"]
+
 
 def test_calibration_api_returns_saved_homography_and_control_points(tmp_path, monkeypatch):
     db_path = tmp_path / "calibration.sqlite"

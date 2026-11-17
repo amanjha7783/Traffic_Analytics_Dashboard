@@ -16,6 +16,10 @@ DATABASE_PATH = _configured_path(
 )
 MODEL_PATH = _configured_path("TRAFFIC_MODEL_PATH", DATA_DIR / "yolov8n.onnx")
 OUTPUT_DIR = _configured_path("TRAFFIC_OUTPUT_DIR", DATA_DIR / "exports")
+PRIMARY_ANNOTATED_VIDEO_PATH = _configured_path(
+    "TRAFFIC_PRIMARY_ANNOTATED_VIDEO",
+    OUTPUT_DIR / "535b437e-f51a-46eb-aa5f-21042d4396e5" / "annotated_browser.mp4",
+)
 MAX_UPLOAD_BYTES = int(os.getenv("TRAFFIC_MAX_UPLOAD_BYTES", str(500 * 1024 * 1024)))
 SUMMARY_DURATION_SECONDS = float(os.getenv("TRAFFIC_SUMMARY_DURATION_SECONDS", "5"))
 DETECTION_CONFIDENCE = float(os.getenv("TRAFFIC_DETECTION_CONFIDENCE", "0.35"))

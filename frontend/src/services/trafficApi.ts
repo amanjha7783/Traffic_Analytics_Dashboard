@@ -10,7 +10,7 @@ import type {
   ModelInfoResponse,
 } from '../types';
 
-export const API_ORIGIN = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+export const API_ORIGIN = (import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000').replace(/\/+$/, '');
 const API_URL = `${API_ORIGIN}/api`;
 
 export const fetchRoadSegments = async (): Promise<RoadsListResponse> => {

@@ -2,7 +2,6 @@ export type NavTab =
   | 'overview' 
   | 'traffic-monitor' 
   | 'trajectories' 
-  | 'risk-heatmap' 
   | 'analytics' 
   | 'reports'
   | 'route-planner'

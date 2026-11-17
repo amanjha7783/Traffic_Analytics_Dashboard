@@ -31,6 +31,36 @@ export interface VideoSession {
   exports?: Record<string, string>;
 }
 
+export interface AnnotatedRecording {
+  recording_id: string;
+  display_name: string;
+  available: boolean;
+  duration_seconds: number | null;
+  width: number | null;
+  height: number | null;
+  file_size_bytes: number | null;
+  processing_job_id: string | null;
+  status: string | null;
+  summary: {
+    data_source?: string;
+    is_partial?: boolean;
+    video_filename?: string;
+    category_counts?: Record<string, number>;
+    total_motor_vehicles?: number;
+    total_vehicles_including_bicycle?: number;
+    pedestrians?: number;
+    speed_kmh?: number | null;
+    speed_note?: string;
+  };
+  stream_url: string | null;
+  error?: string;
+}
+
+export const fetchAnnotatedRecordings = async (): Promise<AnnotatedRecording[]> => {
+  const response = await axios.get(`${API_URL}/video-processing/recordings`);
+  return response.data.recordings;
+};
+
 export const fetchCameras = async (): Promise<CameraStream[]> => {
   const response = await axios.get(`${API_URL}/cameras`);
   return response.data.cameras;

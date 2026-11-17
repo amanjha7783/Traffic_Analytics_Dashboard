@@ -86,6 +86,8 @@ def list_corridors():
 
 @router.post("")
 def create_corridor(config: CorridorConfig):
+    if config.camera_a_id == config.camera_b_id:
+        raise HTTPException(status_code=422, detail="A corridor requires two distinct cameras")
     measured = _measure_road(config.camera_a_id, config.camera_b_id)
     corridor_id = config.id or str(uuid.uuid4())
     now = datetime.now(timezone.utc).isoformat()

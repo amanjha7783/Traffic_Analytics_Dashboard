@@ -338,13 +338,17 @@ export const TrafficMonitorDashboard: React.FC = () => {
             onChange={(event) => setCorridorForm({ ...corridorForm, name: event.target.value })}
             className="rounded-lg border border-outline-variant/30 bg-surface-container px-3 py-2 text-sm text-on-surface" />
           <div className="grid gap-3 sm:grid-cols-2">
-            <select required value={corridorForm.camera_a_id} onChange={(event) => setCorridorForm({ ...corridorForm, camera_a_id: event.target.value })}
+            <select required value={corridorForm.camera_a_id} onChange={(event) => setCorridorForm((current) => ({
+              ...current,
+              camera_a_id: event.target.value,
+              camera_b_id: current.camera_b_id === event.target.value ? '' : current.camera_b_id,
+            }))}
               className="rounded-lg border border-outline-variant/30 bg-surface-container px-3 py-2 text-sm text-on-surface">
               <option value="">Upstream camera</option>{cameras.map((camera) => <option key={camera.id} value={camera.id}>{camera.name}</option>)}
             </select>
             <select required value={corridorForm.camera_b_id} onChange={(event) => setCorridorForm({ ...corridorForm, camera_b_id: event.target.value })}
               className="rounded-lg border border-outline-variant/30 bg-surface-container px-3 py-2 text-sm text-on-surface">
-              <option value="">Downstream camera</option>{cameras.map((camera) => <option key={camera.id} value={camera.id}>{camera.name}</option>)}
+              <option value="">Downstream camera</option>{cameras.filter((camera) => camera.id !== corridorForm.camera_a_id).map((camera) => <option key={camera.id} value={camera.id}>{camera.name}</option>)}
             </select>
             <input value={corridorForm.road_width_m} placeholder="Measured road width (m)"
               onChange={(event) => setCorridorForm({ ...corridorForm, road_width_m: event.target.value })}

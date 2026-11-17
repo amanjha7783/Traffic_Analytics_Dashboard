@@ -1,7 +1,7 @@
 import axios from 'axios';
+import { API_ORIGIN } from './trafficApi';
 
-// Fastapi default runs on port 8000
-const API_URL = `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api`;
+const API_URL = `${API_ORIGIN}/api`;
 
 export const fetchHealth = async () => {
   const res = await axios.get(`${API_URL}/health`);
@@ -14,7 +14,7 @@ export const fetchSummary = async () => {
 };
 
 export const fetchTrajectories = async () => {
-  const res = await axios.get(`${API_URL}/trajectories`);
+  const res = await axios.get(`${API_URL}/trajectories/`);
   return res.data;
 };
 

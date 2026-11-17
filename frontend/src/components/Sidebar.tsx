@@ -4,7 +4,7 @@ import { NavTab } from '../types';
 interface SidebarProps {
   activeTab: NavTab;
   onSelectTab: (tab: NavTab) => void;
-  onOpenSettings: () => void;
+  onOpenTrafficMonitor: () => void;
   isOpenMobile: boolean;
   onCloseMobile: () => void;
 }
@@ -12,7 +12,7 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({
   activeTab,
   onSelectTab,
-  onOpenSettings,
+  onOpenTrafficMonitor,
   isOpenMobile,
   onCloseMobile,
 }) => {
@@ -23,7 +23,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'historical-analytics', label: 'Historical Analytics', icon: 'analytics' },
     { id: 'traffic-monitor', label: 'Traffic Monitor', icon: 'videocam' },
     { id: 'trajectories', label: 'Trajectories', icon: 'timeline' },
-    { id: 'risk-heatmap', label: 'Risk Heatmap', icon: 'crisis_alert' },
     { id: 'analytics', label: 'Analytics', icon: 'query_stats' },
     { id: 'reports', label: 'Reports', icon: 'description' },
   ];
@@ -110,12 +109,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </span>
               </div>
               <button 
-                id="sidebar-settings-btn"
-                onClick={onOpenSettings}
+                id="sidebar-configure-sources-btn"
+                onClick={onOpenTrafficMonitor}
                 className="text-on-surface-variant hover:text-primary transition-colors flex items-center p-1"
-                title="CV Pipeline Settings"
+                title="Open Traffic Monitor to configure sources"
+                aria-label="Configure traffic sources"
               >
-                <span className="material-symbols-outlined text-[16px]">settings</span>
+                <span className="material-symbols-outlined text-[16px]">videocam</span>
               </button>
             </div>
             <div className="flex items-center justify-between text-on-surface-variant font-data-mono-sm text-data-mono-sm pt-space-xs border-t border-outline-variant/20">

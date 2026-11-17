@@ -18,8 +18,6 @@ from app.models.route import (
 )
 from app.services.geocoding import geocode_location
 from app.services.routing import get_route
-from app.services.road_network import get_road_graph, find_shortest_path, DEMO_INTERSECTIONS
-from app.services.prediction import predict_traffic_point
 
 logger = logging.getLogger(__name__)
 
@@ -46,6 +44,14 @@ def estimate_route(req: RouteRequest):
     Uses Nominatim for geocoding and OSRM for real road geometry.
     """
     logger.info(f"Route estimate request: {req.origin} -> {req.destination} in {req.city} (Mode: {req.mode})")
+    if req.mode == RouteMode.TRAFFIC_AWARE:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=(
+                "Traffic-aware route ranking is unavailable until candidate road paths "
+                "can be mapped to validated traffic forecast segments."
+            ),
+        )
 
     # Step 1: Geocode Origin
     orig_geo = geocode_location(req.origin, city=req.city)
@@ -74,64 +80,31 @@ def estimate_route(req: RouteRequest):
         alternatives=True,
     )
 
-    is_demo = False
-    routes: list[RouteAlternative] = []
-
-    if osrm_result and osrm_result.get("routes"):
-        # Real road geometry from OSRM
-        for r in osrm_result["routes"]:
-            routes.append(
-                RouteAlternative(
-                    geometry_polyline=r["geometry_polyline"],
-                    geometry_coordinates=r["geometry_coordinates"],
-                    distance_km=r["distance_km"],
-                    duration_minutes=r["duration_minutes"],
-                    summary=r.get("summary", "Recommended highway route"),
-                    steps=r.get("steps", []),
-                )
-            )
-    else:
-        # Fallback: Local demo road network if OSRM is unreachable
-        logger.warning("OSRM service unreachable. Falling back to local offline road network.")
-        # Create a direct geometric segment between geocoded coordinates
-        coords = [
-            [orig_geo["longitude"], orig_geo["latitude"]],
-            [dest_geo["longitude"], dest_geo["latitude"]],
-        ]
-        # Haversine approximation
-        import math
-        lat1, lon1 = math.radians(orig_geo["latitude"]), math.radians(orig_geo["longitude"])
-        lat2, lon2 = math.radians(dest_geo["latitude"]), math.radians(dest_geo["longitude"])
-        dlat = lat2 - lat1
-        dlon = lon2 - lon1
-        a = math.sin(dlat / 2)**2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2)**2
-        c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
-        dist_km = round(6371.0 * c * 1.3, 2)  # 1.3 factor for road tortuosity
-        dur_min = round((dist_km / 35.0) * 60.0, 1)
-
-        routes.append(
-            RouteAlternative(
-                geometry_polyline="",
-                geometry_coordinates=coords,
-                distance_km=dist_km,
-                duration_minutes=dur_min,
-                summary="Offline Fallback Network Direct Estimate",
-                steps=[],
-            )
+    if not osrm_result or not osrm_result.get("routes"):
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=(
+                "The road-routing service did not return a route. "
+                "No straight-line distance is substituted for road geometry."
+            ),
         )
-        is_demo = True
+
+    routes = [
+        RouteAlternative(
+            geometry_polyline=route["geometry_polyline"],
+            geometry_coordinates=route["geometry_coordinates"],
+            distance_km=route["distance_km"],
+            duration_minutes=route["duration_minutes"],
+            summary=route.get("summary", "Recommended road route"),
+            steps=route.get("steps", []),
+        )
+        for route in osrm_result["routes"]
+    ]
 
     # Calculate ETA if departure time provided
     arrival_time = None
     if req.departure_time and routes:
         arrival_time = _calculate_eta(req.departure_time, routes[0].duration_minutes)
-
-    traffic_note = None
-    if req.mode == RouteMode.TRAFFIC_AWARE:
-        traffic_note = (
-            "Traffic-aware routing mode: Connected to travel-time prediction service. "
-            "Corridor travel times reflect predicted congestion patterns for the departure time."
-        )
 
     return RouteEstimateResponse(
         origin=GeocodedLocation(**orig_geo),
@@ -140,9 +113,8 @@ def estimate_route(req: RouteRequest):
         best_route_index=0,
         departure_time=req.departure_time,
         estimated_arrival_time=arrival_time,
-        data_source="OSRM (OpenStreetMap Road Network)" if not is_demo else "Offline Local Road Network (Demo Fallback)",
-        is_demo_data=is_demo,
-        traffic_aware_note=traffic_note,
+        data_source="OSRM (OpenStreetMap Road Network)",
+        is_demo_data=False,
     )
 
 

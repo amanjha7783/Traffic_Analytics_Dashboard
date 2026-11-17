@@ -69,6 +69,11 @@ export const HistoricalAnalytics: React.FC = () => {
     if (!selectedRoadId) return;
 
     const loadAnalytics = async () => {
+      if (startDate && endDate && startDate > endDate) {
+        setIsLoading(false);
+        setErrorMsg('Start date must be on or before end date.');
+        return;
+      }
       setIsLoading(true);
       setErrorMsg(null);
       try {
@@ -121,7 +126,7 @@ export const HistoricalAnalytics: React.FC = () => {
         {/* Data Provenance Badge */}
         <div className="px-3 py-1.5 rounded-lg bg-surface-container border border-outline-variant/30 text-xs font-mono text-on-surface-variant flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-amber-400"></span>
-          <span>Data Provenance: SIMULATED DEMO DATA</span>
+          <span>Data Provenance: {summary?.data_source || 'Loading…'}</span>
         </div>
       </div>
 
@@ -167,6 +172,7 @@ export const HistoricalAnalytics: React.FC = () => {
           <input
             type="date"
             value={startDate}
+            max={endDate || undefined}
             onChange={(e) => setStartDate(e.target.value)}
             className="px-2 py-1 rounded bg-surface-container-lowest border border-outline-variant/30 text-on-surface text-xs"
           />
@@ -174,6 +180,7 @@ export const HistoricalAnalytics: React.FC = () => {
           <input
             type="date"
             value={endDate}
+            min={startDate || undefined}
             onChange={(e) => setEndDate(e.target.value)}
             className="px-2 py-1 rounded bg-surface-container-lowest border border-outline-variant/30 text-on-surface text-xs"
           />
@@ -190,6 +197,9 @@ export const HistoricalAnalytics: React.FC = () => {
           )}
         </div>
       </div>
+      <p className="text-xs text-on-surface-variant">
+        The time-period buttons filter the hourly profile. The date range filters corridor charts; network summary cards cover the full dataset.
+      </p>
 
       {/* KPI Summary Cards */}
       {summary && (
@@ -431,9 +441,6 @@ export const HistoricalAnalytics: React.FC = () => {
             </div>
           </div>
 
-          <div className="pt-2 border-t border-outline-variant/20 text-[11px] text-on-surface-variant font-mono">
-            Optimal Signal Offset: Reallocate +18s green time during detected rush hours.
-          </div>
         </div>
       </div>
 

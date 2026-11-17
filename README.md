@@ -8,7 +8,7 @@ An end-to-end, full-stack intelligent transportation engineering platform combin
 
 This project combines route planning and historical analytics with an operational two-camera / recorded-video computer-vision pipeline. Camera status and streams are sourced from the backend; recorded uploads produce confirmed-track counts, annotated video, and downloadable CSV/JSON summaries. Historical trajectory and traffic CSV files in this repository are demonstration inputs, not live sensor measurements.
 
-The Overview page plays the latest completed annotated recording and shows its vehicle-category totals. It is labeled as recorded footage; live camera configuration and processing another recording remain in Traffic Monitor.
+The Overview page loads the configured primary annotated recording and a second distinct annotated export, when available. Both are muted and request autoplay; browser playback still depends on the media being decodable. They are labeled as recorded footage; live camera configuration and connection status remain separate in Traffic Monitor.
 
 Forecasting currently selects a historical same-hour baseline unless the serialized XGBoost model is available and has a lower saved chronological-test MAE. Existing evaluation data are synthetic; no production accuracy claim is made. Deep-learning forecasting, calibrated physical speed/occupancy, and validated collision/PET detection are not available until corresponding models, sensor data, and calibration are supplied.
 
@@ -19,6 +19,7 @@ Forecasting currently selects a historical same-hour baseline unless the seriali
 ### Preserved and Integrated Features
 - **Live camera monitoring:** Configure two or more RTSP, local-video, or webcam sources; start/stop streams and view server-side annotated MJPEG feeds. RTSP credentials are read from backend environment variables and are not returned to the browser.
 - **Recorded-video processing:** Upload MP4/MOV/AVI/MKV files, optionally draw a counting line, monitor processing, pause/resume/stop, and download annotated MP4, category totals, track details, minute-offset counts, and JSON results.
+- **Annotated playback:** Overview discovers the configured primary MP4 and a distinct MP4 from another export job; native video controls use an API that supports HTTP byte ranges. Missing second exports are shown as unavailable rather than duplicated.
 - **Vehicle detection and tracking:** Confirmed unique tracks are counted separately from line crossings. Standard COCO weights do not identify three-wheelers; that category requires compatible fine-tuned weights and an explicit class mapping.
 - **Corridor setup:** Store camera pairs and request road geometry/distance from OSRM using camera coordinates. Ground-plane calibration is a separate, camera-specific operation.
 - **Historical trajectory, analytics, route planning, and forecasting:** Existing views remain. Demo data and prototype/static visualizations are labeled; unsupported live values are shown as unavailable rather than inferred.
@@ -59,7 +60,7 @@ Forecasting currently selects a historical same-hour baseline unless the seriali
 │  - Route Planner (Leaflet Map + OSRM Polylines + Alternatives)         │
 │  - Historical Analytics (Recharts Volume, Speed, Weekday, Congestion)  │
 │  - 24-Hour Traffic Forecast (XGBoost Inferences & Period Digest)       │
-│  - Live Monitor, Trajectories, Heatmap & Safety Reports                │
+│  - Live Monitor, Processed Video Playback, Trajectories & Reports      │
 └───────────────────────────────────┬────────────────────────────────────┘
                                     │ HTTP REST (port 8000)
                                     ▼
@@ -119,12 +120,11 @@ Traffic_Analytics_Dashboard/
 │
 ├── frontend/
 │   ├── src/
-│   │   ├── components/              # Sidebar, Header, Video, Heatmap, etc.
+│   │   ├── components/              # Sidebar, Header, Video and feature views
 │   │   ├── pages/
 │   │   │   ├── RoutePlanner.tsx     # Route planning page with Leaflet map
 │   │   │   ├── HistoricalAnalytics.tsx # Historical analytics with Recharts
 │   │   │   ├── TrafficForecast.tsx  # 24-hour predictive forecast page
-│   │   │   └── Dashboard.jsx        # Legacy dashboard view
 │   │   ├── services/
 │   │   │   ├── routeApi.ts          # Axios routing API client
 │   │   │   ├── trafficApi.ts        # Axios traffic API client
@@ -324,6 +324,15 @@ cd E:\Traffic_Analytics_Dashboard\backend
 - `GET /api/trajectories/`: Trajectory points for camera tracking.
 - `GET /api/analytics/summary`: Top-level intersection KPIs.
 - `GET /api/analytics/vehicles-over-time`: Flow rate time series.
+- `GET /api/video-processing/recordings`: Metadata for two distinct annotated recordings, including media dimensions, duration, size, job summary, and stream URL.
+- `GET /api/video-processing/recordings/{recording_id}/stream`: Approved MP4 stream with HTTP byte-range seeking; IDs resolve only to files inside `TRAFFIC_OUTPUT_DIR`.
+- `GET /api/video-processing/recordings/{recording_id}/files/{export_name}`: Whitelisted CSV, JSON, or MP4 exports for discovered recordings.
+- `GET /api/video-processing/latest`: Latest completed database job, or a completed on-disk export when no database job is available.
+
+### Configure annotated recordings
+By default, the primary video is `backend/data/exports/535b437e-f51a-46eb-aa5f-21042d4396e5/annotated_browser.mp4`. Set backend environment variables `TRAFFIC_OUTPUT_DIR` and, if needed, `TRAFFIC_PRIMARY_ANNOTATED_VIDEO` to change the export directory or primary MP4. Relative paths resolve from the backend directory. The second player is discovered from a different job directory, preferring a valid completed export with a processing summary; partial outputs are identified as partial. Add or replace exports under the configured export directory using `annotated.mp4` or `annotated_browser.mp4` and, where available, keep `processing_summary.json` alongside the video. The browser never receives a filesystem path.
+
+Recorded playback is not a CCTV connection. Configure actual RTSP streams separately through Traffic Monitor and backend-only `CAMERA_RTSP_*` environment variables. Do not copy credentials into frontend settings.
 
 ---
 
@@ -335,7 +344,7 @@ Run the pytest test suite:
 cd E:\Traffic_Analytics_Dashboard\backend
 python -m pytest -q
 ```
-Tests cover existing API behavior plus camera source privacy, corridor registration, forecast provenance and validation, calibration guards, counting-line intersections, and unique-track/export consistency.
+Tests cover existing API behavior plus camera source privacy, corridor registration, forecast provenance and validation, calibration guards, counting-line intersections, unique-track/export consistency, annotated-recording discovery, access confinement, and byte-range streaming.
 
 ### Running Frontend Production Build
 Verify TypeScript compilation and bundling:
@@ -350,22 +359,30 @@ npm run lint
 
 ## 13. Feature Implementation Status
 
-| Feature | Status | Provenance & Notes |
+| Feature | Status | Evidence / limits |
 |---|---|---|
-| **Traffic Monitor View** | Implemented | Backend-configured camera sources; no mock feed |
-| **Recorded Video Processing** | Implemented | Confirmed unique tracks, optional finite counting line, annotated MP4 and CSV/JSON exports |
-| **Trajectory File View** | Implemented | Displays source coordinates without claiming calibration or live status |
-| **Risk Heatmap** | Prototype only | Static sample imagery; not derived from current camera telemetry |
-| **Corridor Geometry / Calibration** | Implemented | OSRM road geometry and per-camera homography API/dashboard setup |
-| **Route Planner** | Genuinely Implemented | Real OSM road geometry from OSRM + Nominatim geocoding |
-| **Leaflet Map Integration** | Genuinely Implemented | Interactive vector polylines, SVG pins, auto-fitting bounds |
-| **Alternative Routes** | Genuinely Implemented | Ranked comparison table with selectable preview |
-| **Baseline Routing** | Genuinely Implemented | Shortest real road distance |
-| **Traffic-Aware Routing** | Implemented with Simulation | Integrated with ML travel-time predictions; clearly tagged |
-| **24-Hour Forecast** | Implemented with gating | Historical same-hour baseline; XGBoost only when validated better |
-| **Deep-Learning Forecast** | Unavailable | No trained sequence/DL model or category-wise observation data supplied |
-| **Historical Analytics** | Implemented on demo data | Diurnal volume, speed profiles, weekday vs weekend, peak hours |
-| **Light / Dark Mode** | Genuinely Implemented | Dual theme switcher with full CSS variable mapping |
+| **Overview recorded playback** | IMPLEMENTED; browser verification pending | `/api/video-processing/recordings`; distinct job outputs, byte-range streaming, browser-compatible files, and muted autoplay |
+| **Recorded video processing and exports** | PARTIALLY WORKING | `backend/app/vision/video_processor.py` and job summaries; confirmed-track counts and CSV/JSON exports exist; class support depends on ONNX weights |
+| **Live CCTV / RTSP monitoring** | BLOCKED BY MISSING HARDWARE OR DATA | Camera APIs and monitor UI exist; no real camera credentials or feeds are configured in this workspace |
+| **Trajectory file view** | WORKING | `backend/data/trajectory_data.json` and `/api/trajectories/`; file-based data is not live or calibrated |
+| **Risk Heatmap** | NOT IMPLEMENTED (removed) | Static sample imagery and visualization were not backed by calibrated camera telemetry |
+| **Corridor geometry / calibration** | PARTIALLY WORKING | `backend/app/routes/corridors.py` and camera calibration APIs; road lookup requires network access and real control points |
+| **Route Planner** | PARTIALLY WORKING | `frontend/src/pages/RoutePlanner.tsx` and `/api/route/*`; baseline routes require external services, traffic-aware ranking is unavailable until road-segment mapping exists |
+| **Historical Analytics** | WORKING | `/api/traffic/analytics/*`; bundled dataset is explicitly simulated, not current CCTV |
+| **Traffic Forecast** | PARTIALLY WORKING | `/api/traffic/forecast` and `/api/traffic/24-hour`; demo input and model gating are shown, not field-validated predictions |
+| **Physical speed, occupancy, density, and collision risk** | BLOCKED BY MISSING HARDWARE OR DATA | Measurement guards in `backend/app/traffic/calculations.py`; unavailable without synchronized measurements and calibrated road geometry |
+| **Deep-learning forecast** | NOT IMPLEMENTED | No trained sequence/DL model is supplied |
+| **Two-camera synchronization and cross-camera identity matching** | BLOCKED BY MISSING HARDWARE OR DATA | No synchronized live streams or calibration data; tracker IDs are camera-local |
+| **Light / Dark Mode** | WORKING | Theme switcher and CSS variables in `frontend/src/App.tsx` and `frontend/src/index.css` |
+| **Analytics** | WORKING on repository trajectory data | `frontend/src/components/AnalyticsCharts.tsx` labels file-derived counts and marks uncalibrated metrics unavailable |
+| **Reports and video exports** | IMPLEMENTED; runtime verification pending | `frontend/src/components/ReportsView.tsx` links to database-job exports or whitelisted files from a completed on-disk export |
+
+### Stabilization audit: current annotated recordings
+- Primary: `backend/data/exports/535b437e-f51a-46eb-aa5f-21042d4396e5/annotated_browser.mp4` — completed; processing summary reports 123 vehicles and 42 separate pedestrians.
+- Second: `backend/data/exports/940573ed-66df-4376-b211-18365e5bdf24/annotated_browser.mp4` — partial; its processing summary reports 18 vehicles and 5 separate pedestrians. The browser-compatible H.264 copy is derived from and does not replace the original `annotated.mp4`.
+- These are distinct annotated MP4s from separate processing jobs, but both summaries identify the same uploaded source filename. The second job processed only 1.5 seconds. Neither player is presented as live CCTV. Three-wheeler zeroes are unverified because the bundled COCO class set does not include that category. Browser autoplay/playback has not been validated in this environment.
+- Removed the static Risk Heatmap component and its two dedicated sample images. Removed the unreferenced `ArchitecturePipeline.tsx` (which included fabricated latency/risk stages) and unreferenced legacy `Dashboard.jsx` (which imported a missing HeatmapViewer).
+- If the public road-routing service is unavailable, the route API now returns a clear gateway error instead of presenting a straight-line approximation as road geometry. Traffic-aware ranking stays disabled until road paths can be mapped to validated forecast segments.
 
 ---
 

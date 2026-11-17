@@ -13,6 +13,7 @@ if backend_dir not in sys.path:
 
 from fastapi.testclient import TestClient
 from app.main import app
+from app.routes import route_planner
 
 client = TestClient(app)
 
@@ -101,3 +102,41 @@ def test_route_estimate_invalid_location():
     )
     assert res.status_code == 400
     assert "Could not resolve" in res.json()["detail"]
+
+
+def test_route_estimate_does_not_substitute_straight_line_distance(monkeypatch):
+    location = {
+        "name": "Test",
+        "display_name": "Test Location",
+        "latitude": 26.85,
+        "longitude": 80.95,
+        "data_source": "test fixture",
+    }
+    monkeypatch.setattr(route_planner, "geocode_location", lambda *_args, **_kwargs: location)
+    monkeypatch.setattr(route_planner, "get_route", lambda **_kwargs: None)
+
+    response = client.post(
+        "/api/route/estimate",
+        json={
+            "origin": "Start",
+            "destination": "End",
+            "city": "Test City",
+            "mode": "baseline",
+        },
+    )
+    assert response.status_code == 502
+    assert "No straight-line distance" in response.json()["detail"]
+
+
+def test_traffic_aware_route_is_rejected_without_forecast_segment_mapping():
+    response = client.post(
+        "/api/route/estimate",
+        json={
+            "origin": "Start",
+            "destination": "End",
+            "city": "Test City",
+            "mode": "traffic_aware",
+        },
+    )
+    assert response.status_code == 503
+    assert "mapped to validated traffic forecast segments" in response.json()["detail"]

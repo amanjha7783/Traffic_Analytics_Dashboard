@@ -5,11 +5,9 @@ import { Header } from './components/Header';
 import { KpiRow } from './components/KpiRow';
 import { VideoPlayerFeed } from './components/VideoPlayerFeed';
 import { TrajectoriesSection } from './components/TrajectoriesSection';
-import { RiskHeatmapSection } from './components/RiskHeatmapSection';
 import { AnalyticsCharts } from './components/AnalyticsCharts';
 import { TrafficMonitorDashboard } from './components/TrafficMonitorDashboard';
 import { ReportsView } from './components/ReportsView';
-import { SettingsModal } from './components/SettingsModal';
 import { RoutePlanner } from './pages/RoutePlanner';
 import { HistoricalAnalytics } from './pages/HistoricalAnalytics';
 import { TrafficForecast } from './pages/TrafficForecast';
@@ -18,7 +16,6 @@ import { fetchSummary, fetchVehiclesOverTime, fetchTrajectories } from './servic
 export default function App() {
   const [activeTab, setActiveTab] = useState<NavTab>('overview');
   const [selectedVehicleId, setSelectedVehicleId] = useState<string>('');
-  const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
   
   // Theme State
@@ -44,20 +41,17 @@ export default function App() {
   const [apiError, setApiError] = useState<string | null>(null);
 
   useEffect(() => {
+    let active = true;
     const loadData = async () => {
       try {
-        const sumData = await fetchSummary();
-        const timeData = await fetchVehiclesOverTime();
-        const trajData = await fetchTrajectories();
+        const [sumData, timeData, trajData] = await Promise.all([
+          fetchSummary(),
+          fetchVehiclesOverTime(),
+          fetchTrajectories(),
+        ]);
+        if (!active) return;
         
-        const latestPositions = new Map();
-        if (Array.isArray(trajData)) {
-            trajData.forEach((pt: any) => {
-                latestPositions.set(pt.vehicle_id, pt);
-            });
-        }
-        
-        const mappedTracks = Array.from(latestPositions.values()).map((d: any) => ({
+        const mappedTracks = (Array.isArray(trajData) ? trajData : []).map((d: any) => ({
             id: String(d.vehicle_id),
             type: String(d.vehicle_type || 'UNKNOWN'),
             timestamp: Number(d.timestamp),
@@ -69,16 +63,21 @@ export default function App() {
         setSummaryData(sumData);
         setChartData(timeData);
         setTrajectoriesData(mappedTracks);
+        setApiError(null);
         setIsLoading(false);
       } catch (err) {
+        if (!active) return;
         console.error("Error fetching data from backend", err);
         setApiError("Unable to load traffic analytics. Please check the backend connection.");
         setIsLoading(false);
       }
     };
-    loadData();
+    void loadData();
     const interval = setInterval(loadData, 30000);
-    return () => clearInterval(interval);
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
   }, []);
 
   return (
@@ -86,7 +85,7 @@ export default function App() {
       <Sidebar
         activeTab={activeTab}
         onSelectTab={setActiveTab}
-        onOpenSettings={() => setIsSettingsOpen(true)}
+        onOpenTrafficMonitor={() => setActiveTab('traffic-monitor')}
         isOpenMobile={isMobileMenuOpen}
         onCloseMobile={() => setIsMobileMenuOpen(false)}
       />
@@ -99,13 +98,13 @@ export default function App() {
         />
 
         <main className="relative w-full bg-background px-space-md lg:px-gutter-lg py-space-lg">
-          {apiError && ['trajectories', 'analytics', 'risk-heatmap'].includes(activeTab) ? (
+          {apiError && ['trajectories', 'analytics'].includes(activeTab) ? (
              <div className="w-full p-space-xl bg-surface-container-low rounded-xl border border-error/20 flex flex-col items-center justify-center text-center">
                  <span className="material-symbols-outlined text-[48px] text-error mb-4">error</span>
                  <h2 className="font-headline-lg text-headline-lg text-on-surface">{apiError}</h2>
-                 <p className="text-on-surface-variant mt-2 font-body-lg">Verify that the FastAPI server is running on http://localhost:8000.</p>
+                 <p className="text-on-surface-variant mt-2 font-body-lg">Verify that the FastAPI server is running on http://127.0.0.1:8000.</p>
              </div>
-          ) : isLoading && ['trajectories', 'analytics', 'risk-heatmap'].includes(activeTab) ? (
+          ) : isLoading && ['trajectories', 'analytics'].includes(activeTab) ? (
              <div className="w-full flex items-center justify-center p-space-2xl text-on-surface-variant">
                 <span className="material-symbols-outlined animate-spin text-[32px] text-primary">sync</span>
                 <span className="ml-4 font-headline-sm">Loading traffic data...</span>
@@ -117,7 +116,7 @@ export default function App() {
           )}
 
           {/* Render other tabs */}
-          {!isLoading && activeTab === 'traffic-monitor' && (
+          {activeTab === 'traffic-monitor' && (
             <div className="flex flex-col w-full pb-space-2xl">
               <TrafficMonitorDashboard />
             </div>
@@ -133,14 +132,6 @@ export default function App() {
             </div>
           )}
           
-          {!isLoading && !apiError && activeTab === 'risk-heatmap' && (
-            <div className="flex flex-col w-full gap-space-lg pb-space-2xl">
-              <RiskHeatmapSection
-                onViewRiskBreakdown={() => setActiveTab('reports')}
-              />
-            </div>
-          )}
-
           {!isLoading && !apiError && activeTab === 'analytics' && (
             <div className="flex flex-col w-full gap-space-lg pb-space-2xl">
               <KpiRow 
@@ -163,17 +154,13 @@ export default function App() {
             <HistoricalAnalytics />
           )}
 
-          {!isLoading && !apiError && activeTab === 'reports' && (
+          {activeTab === 'reports' && (
              <ReportsView />
           )}
 
         </main>
       </div>
 
-      <SettingsModal
-        isOpen={isSettingsOpen}
-        onClose={() => setIsSettingsOpen(false)}
-      />
     </div>
   );
 }

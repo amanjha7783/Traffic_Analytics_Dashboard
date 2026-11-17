@@ -136,7 +136,7 @@ export const RoutePlanner: React.FC = () => {
             </span>
           </div>
           <span className="font-body-sm text-body-sm text-on-surface-variant mt-1">
-            Real road-network routing with OpenStreetMap road geometry and predictive travel-time estimation
+            Real road-network routing with OpenStreetMap geometry; traffic-aware ranking requires matched forecast segments.
           </span>
         </div>
       </div>
@@ -245,15 +245,12 @@ export const RoutePlanner: React.FC = () => {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setRoutingMode('traffic_aware')}
-                  className={`py-2 px-2.5 rounded text-xs font-semibold transition-all flex flex-col items-center justify-center text-center ${
-                    routingMode === 'traffic_aware'
-                      ? 'bg-primary-container text-on-primary-container shadow-sm font-bold'
-                      : 'text-on-surface-variant hover:text-on-surface'
-                  }`}
+                  disabled
+                  title="Unavailable until road routes are mapped to validated traffic forecast segments."
+                  className="py-2 px-2.5 rounded text-xs font-semibold text-on-surface-variant/60 cursor-not-allowed flex flex-col items-center justify-center text-center"
                 >
                   <span>Traffic-Aware</span>
-                  <span className="text-[10px] font-normal opacity-80">Predictive Delay Minimization</span>
+                  <span className="text-[10px] font-normal opacity-80">Unavailable: no segment mapping</span>
                 </button>
               </div>
             </div>
