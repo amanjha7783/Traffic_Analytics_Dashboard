@@ -103,11 +103,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-space-xs">
                 <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-tertiary opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-tertiary"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-on-surface-variant"></span>
                 </span>
-                <span className="font-label-caps text-label-caps uppercase text-tertiary font-bold tracking-wider">
-                  Processing Ready
+                <span className="font-label-caps text-label-caps uppercase text-on-surface-variant font-bold tracking-wider">
+                  Configure Sources
                 </span>
               </div>
               <button 
@@ -120,8 +119,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </button>
             </div>
             <div className="flex items-center justify-between text-on-surface-variant font-data-mono-sm text-data-mono-sm pt-space-xs border-t border-outline-variant/20">
-              <span>Pipeline Latency:</span>
-              <span className="text-primary font-semibold">24ms</span>
+              <span>Camera streams:</span>
+              <span className="text-on-surface-variant font-semibold">See monitor</span>
             </div>
           </div>
         </div>

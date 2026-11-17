@@ -10,9 +10,9 @@ export const AiInsightsSection: React.FC<Props> = ({ onViewAnalytics }) => {
       <div className="flex flex-col gap-4 max-w-2xl">
         <span className="font-headline-md text-on-surface font-semibold">Traffic Insights</span>
         <ul className="flex flex-col gap-2 text-on-surface-variant font-body-lg list-disc pl-5">
-          <li>Traffic concentration is highest around the central intersection.</li>
-          <li>Average vehicle speed decreases sharply during high-density periods.</li>
-          <li>Most conflict points occur during unprotected left turns.</li>
+          <li>Live camera measurements appear after a configured camera is connected in Traffic Monitor.</li>
+          <li>Physical speed and road occupancy require a camera-specific ground-plane calibration.</li>
+          <li>Conflict and near-miss alerts are unavailable until a validated conflict detector is integrated.</li>
         </ul>
       </div>
       

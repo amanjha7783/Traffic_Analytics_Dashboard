@@ -200,6 +200,7 @@ def load_traffic_data() -> List[Dict]:
             with open(CSV_PATH, "r", encoding="utf-8") as f:
                 reader = csv.DictReader(f)
                 for row in reader:
+                    demo_value = row.get("is_demo_data", "true").strip().lower()
                     records.append({
                         "timestamp": row["timestamp"],
                         "road_segment_id": row["road_segment_id"],
@@ -210,16 +211,32 @@ def load_traffic_data() -> List[Dict]:
                         "road_length_km": float(row["road_length_km"]),
                         "num_lanes": int(row["num_lanes"]),
                         "speed_limit_kmh": float(row["speed_limit_kmh"]),
-                        "is_demo_data": True,
+                        "is_demo_data": demo_value not in {"false", "0", "no"},
                     })
             if records:
                 _traffic_records = records
                 return records
         except Exception as e:
-            logger.warning(f"Error loading {CSV_PATH}, regenerating: {e}")
+            logger.error(f"Could not load historical traffic data from {CSV_PATH}: {e}")
+            _traffic_records = []
+            return _traffic_records
 
-    _traffic_records = generate_synthetic_historical_data()
+    logger.warning(
+        "Historical traffic file is unavailable at %s; no synthetic records were generated",
+        CSV_PATH,
+    )
+    _traffic_records = []
     return _traffic_records
+
+
+def get_data_provenance() -> tuple[str, bool]:
+    records = load_traffic_data()
+    if not records:
+        return "UNAVAILABLE — no historical observations loaded", True
+    is_demo = all(record["is_demo_data"] for record in records)
+    if is_demo:
+        return "SIMULATED DEMO DATA — Not real measurements", True
+    return "IMPORTED HISTORICAL TRAFFIC OBSERVATIONS", False
 
 
 def get_road_segments_list() -> List[RoadSegment]:
@@ -255,8 +272,9 @@ def get_analytics_summary() -> TrafficAnalyticsSummary:
             average_travel_time_seconds=0.0,
             average_volume=0,
             busiest_road="N/A",
-            peak_hour=18,
-            is_demo_data=True,
+            peak_hour=None,
+            is_demo_data=all(record["is_demo_data"] for record in data),
+            data_source="UNAVAILABLE — no historical observations loaded",
         )
 
     speeds = [d["speed_kmh"] for d in data]
@@ -276,7 +294,7 @@ def get_analytics_summary() -> TrafficAnalyticsSummary:
             pass
 
     busiest = max(road_vols.items(), key=lambda x: x[1])[0] if road_vols else "N/A"
-    peak_h = max(hour_vols.items(), key=lambda x: x[1])[0] if hour_vols else 18
+    peak_h = max(hour_vols.items(), key=lambda x: x[1])[0] if hour_vols else None
 
     return TrafficAnalyticsSummary(
         total_records=len(data),
@@ -287,7 +305,8 @@ def get_analytics_summary() -> TrafficAnalyticsSummary:
         average_volume=int(sum(vols) / len(vols)),
         busiest_road=busiest,
         peak_hour=peak_h,
-        is_demo_data=True,
+        is_demo_data=all(record["is_demo_data"] for record in data),
+        data_source=get_data_provenance()[0],
     )
 
 
@@ -299,7 +318,9 @@ def get_hourly_pattern(
 ) -> List[HourlyPattern]:
     """Compute hourly volume and speed averages."""
     data = load_traffic_data()
-    road = get_road_by_id(road_segment_id) or ROAD_SEGMENTS[0]
+    road = get_road_by_id(road_segment_id)
+    if road is None:
+        raise LookupError(f"Unknown road segment: {road_segment_id}")
     r_id = road["road_segment_id"]
 
     # Filter by road
@@ -310,6 +331,8 @@ def get_hourly_pattern(
         filtered = [d for d in filtered if d["timestamp"][:10] >= start_date]
     if end_date:
         filtered = [d for d in filtered if d["timestamp"][:10] <= end_date]
+    if not filtered:
+        raise LookupError("No historical observations exist for the selected road and date range")
 
     # Aggregate by hour
     by_hour: Dict[int, List[Dict]] = {h: [] for h in range(24)}
@@ -328,19 +351,14 @@ def get_hourly_pattern(
             avg_speed = sum(x["speed_kmh"] for x in group) / len(group)
             avg_vol = sum(x["volume"] for x in group) / len(group)
             avg_tt = sum(x["travel_time_seconds"] for x in group) / len(group)
-        else:
-            avg_speed = road["base_free_flow_speed"]
-            avg_vol = 500
-            avg_tt = (road["road_length_km"] / avg_speed) * 3600
-
-        patterns.append(
-            HourlyPattern(
-                hour=h,
-                avg_speed_kmh=round(avg_speed, 1),
-                avg_volume=round(avg_vol, 1),
-                avg_travel_time_seconds=round(avg_tt, 1),
+            patterns.append(
+                HourlyPattern(
+                    hour=h,
+                    avg_speed_kmh=round(avg_speed, 1),
+                    avg_volume=round(avg_vol, 1),
+                    avg_travel_time_seconds=round(avg_tt, 1),
+                )
             )
-        )
 
     # Optional period filtering
     if period == "morning":
@@ -360,7 +378,9 @@ def get_weekday_comparison(
 ) -> List[WeekdayComparison]:
     """Compare weekday vs weekend traffic metrics."""
     data = load_traffic_data()
-    road = get_road_by_id(road_segment_id) or ROAD_SEGMENTS[0]
+    road = get_road_by_id(road_segment_id)
+    if road is None:
+        raise LookupError(f"Unknown road segment: {road_segment_id}")
     r_id = road["road_segment_id"]
 
     filtered = [d for d in data if d["road_segment_id"] == r_id]
@@ -368,6 +388,8 @@ def get_weekday_comparison(
         filtered = [d for d in filtered if d["timestamp"][:10] >= start_date]
     if end_date:
         filtered = [d for d in filtered if d["timestamp"][:10] <= end_date]
+    if not filtered:
+        raise LookupError("No historical observations exist for the selected road and date range")
 
     weekdays = []
     weekends = []
@@ -382,23 +404,21 @@ def get_weekday_comparison(
         except Exception:
             pass
 
-    def _avg(lst, key):
-        return sum(x[key] for x in lst) / len(lst) if lst else 0.0
-
-    return [
-        WeekdayComparison(
-            category="weekday",
-            avg_speed_kmh=round(_avg(weekdays, "speed_kmh"), 1),
-            avg_volume=round(_avg(weekdays, "volume"), 1),
-            avg_travel_time_seconds=round(_avg(weekdays, "travel_time_seconds"), 1),
-        ),
-        WeekdayComparison(
-            category="weekend",
-            avg_speed_kmh=round(_avg(weekends, "speed_kmh"), 1),
-            avg_volume=round(_avg(weekends, "volume"), 1),
-            avg_travel_time_seconds=round(_avg(weekends, "travel_time_seconds"), 1),
-        ),
-    ]
+    result = []
+    for category, group in (("weekday", weekdays), ("weekend", weekends)):
+        if not group:
+            continue
+        result.append(
+            WeekdayComparison(
+                category=category,
+                avg_speed_kmh=round(sum(x["speed_kmh"] for x in group) / len(group), 1),
+                avg_volume=round(sum(x["volume"] for x in group) / len(group), 1),
+                avg_travel_time_seconds=round(
+                    sum(x["travel_time_seconds"] for x in group) / len(group), 1
+                ),
+            )
+        )
+    return result
 
 
 def get_peak_hours(
@@ -416,8 +436,8 @@ def get_peak_hours(
     m_sorted = sorted(morning_candidates, key=lambda x: x.avg_volume, reverse=True)
     e_sorted = sorted(evening_candidates, key=lambda x: x.avg_volume, reverse=True)
 
-    morning_peaks = [m_sorted[0].hour, m_sorted[1].hour] if len(m_sorted) >= 2 else [9, 10]
-    evening_peaks = [e_sorted[0].hour, e_sorted[1].hour] if len(e_sorted) >= 2 else [18, 19]
+    morning_peaks = [point.hour for point in m_sorted[:2]]
+    evening_peaks = [point.hour for point in e_sorted[:2]]
 
     hourly_details = [
         PeakHourInfo(
@@ -443,8 +463,9 @@ def get_congestion_trends(
     filtered = data
     if road_segment_id:
         road = get_road_by_id(road_segment_id)
-        if road:
-            filtered = [d for d in filtered if d["road_segment_id"] == road["road_segment_id"]]
+        if road is None:
+            raise LookupError(f"Unknown road segment: {road_segment_id}")
+        filtered = [d for d in filtered if d["road_segment_id"] == road["road_segment_id"]]
 
     if start_date:
         filtered = [d for d in filtered if d["timestamp"][:10] >= start_date]
@@ -461,10 +482,14 @@ def get_congestion_trends(
         items = by_date[dt_str]
         avg_spd = sum(x["speed_kmh"] for x in items) / len(items)
         avg_vol = sum(x["volume"] for x in items) / len(items)
-        # Baseline free flow speed ~ 50 km/h
-        free_flow = 50.0
+        road_speeds = [
+            road["base_free_flow_speed"]
+            for road in ROAD_SEGMENTS
+            if any(item["road_segment_id"] == road["road_segment_id"] for item in items)
+        ]
+        free_flow = sum(road_speeds) / len(road_speeds) if road_speeds else 0.0
         # Congestion Index: ratio of free-flow speed to actual speed (>1 = congested)
-        c_index = max(1.0, round(free_flow / max(avg_spd, 1.0), 2))
+        c_index = max(1.0, round(free_flow / max(avg_spd, 1.0), 2)) if free_flow else 0.0
 
         trends.append(
             CongestionTrendPoint(

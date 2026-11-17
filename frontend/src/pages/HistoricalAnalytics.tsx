@@ -110,7 +110,7 @@ export const HistoricalAnalytics: React.FC = () => {
               Historical Traffic Analytics
             </span>
             <span className="px-2 py-0.5 rounded bg-tertiary-container/30 text-tertiary font-label-caps text-label-caps font-bold">
-              MULTI-SENSOR TELEMETRY
+              HISTORICAL DATA
             </span>
           </div>
           <span className="font-body-sm text-body-sm text-on-surface-variant mt-1">
@@ -250,6 +250,7 @@ export const HistoricalAnalytics: React.FC = () => {
           <span className="text-sm">{errorMsg}</span>
         </div>
       )}
+      {isLoading && <p className="text-sm text-on-surface-variant">Loading historical observations…</p>}
 
       {/* Row 1: Hourly Traffic Volume (Bar) & Speed (Line) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-space-lg">
@@ -358,7 +359,7 @@ export const HistoricalAnalytics: React.FC = () => {
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={weekdayComp} margin={{ top: 10, right: 20, left: 0, bottom: 10 }}>
                 <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
-                <XAxis dataKey="category" tick={{ fontSize: 12, fill: 'currentColor', textTransform: 'capitalize' }} />
+                <XAxis dataKey="category" tick={{ fontSize: 12, fill: 'currentColor' }} />
                 <YAxis yAxisId="left" orientation="left" stroke="#0284c7" unit=" veh" />
                 <YAxis yAxisId="right" orientation="right" stroke="#10b981" unit=" km/h" />
                 <Tooltip contentStyle={{ backgroundColor: '#1c2028', borderColor: '#3d494c', color: '#fff' }} />

@@ -97,7 +97,7 @@ class TrafficAnalyticsSummary(BaseModel):
     average_travel_time_seconds: float
     average_volume: int
     busiest_road: str
-    peak_hour: int
+    peak_hour: Optional[int] = None
     data_source: str = "SIMULATED DEMO DATA — Not real measurements"
     is_demo_data: bool = True
 
@@ -180,8 +180,8 @@ class ModelInfoResponse(BaseModel):
     model_type: str
     features_used: List[str]
     training_records: int
-    mae: float
-    rmse: float
-    r2_score: float
+    mae: Optional[float] = None
+    rmse: Optional[float] = None
+    r2_score: Optional[float] = None
     training_date: str
     note: str = "Model trained on SIMULATED DEMO DATA. Metrics reflect demo data performance only."

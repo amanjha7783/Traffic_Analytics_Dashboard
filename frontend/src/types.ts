@@ -13,8 +13,8 @@ export type NavTab =
 export interface GeocodedLocation {
   name: string;
   display_name: string;
-  latitude: float;
-  longitude: float;
+  latitude: number;
+  longitude: number;
   data_source: string;
 }
 
@@ -178,9 +178,9 @@ export interface ModelInfoResponse {
   model_type: string;
   features_used: string[];
   training_records: number;
-  mae: number;
-  rmse: number;
-  r2_score: number;
+  mae: number | null;
+  rmse: number | null;
+  r2_score: number | null;
   training_date: string;
   note: string;
 }
@@ -188,27 +188,11 @@ export interface ModelInfoResponse {
 // Existing Types
 export interface VehicleTrack {
   id: string;
-  type: 'Car' | 'Truck' | 'Bus' | 'Moto';
-  classification: string;
-  speed: number;
-  confidence: number;
-  direction: string;
-  duration: number;
-  curvature: number;
-  homographyError: number;
-  collisionPotential: 'LOW' | 'MEDIUM' | 'HIGH';
-  ttc: number;
-  dimensions: string;
-  weightEst: string;
-  bbox: {
-    left: string;
-    top: string;
-    width: string;
-    height: string;
-  };
-  color: string;
-  statusText?: string;
-  decelerating?: boolean;
+  type: string;
+  timestamp: number;
+  x: number;
+  y: number;
+  speed?: number;
 }
 
 export interface CameraStream {
@@ -216,12 +200,16 @@ export interface CameraStream {
   name: string;
   junction: string;
   code: string;
-  rtspUrl: string;
-  resolution: string;
-  fps: number;
-  status: 'ONLINE' | 'STANDBY' | 'CALIBRATING';
-  latencyMs: number;
-  imageUrl: string;
+  direction?: string | null;
+  video_source?: 'rtsp' | 'local' | 'sample' | 'webcam';
+  credentials_configured?: boolean;
+  latitude?: number | null;
+  longitude?: number | null;
+  resolution?: string | null;
+  fps?: number | null;
+  status: string;
+  latencyMs?: number;
+  imageUrl?: string;
 }
 
 export interface IncidentAlert {

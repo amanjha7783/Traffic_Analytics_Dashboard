@@ -33,3 +33,8 @@ Thumbs.db
 
 # NOTE: Do NOT ignore frontend/public/assets/*.mp4 or *.jpeg
 # The provided traffic video and images must remain in the repository for demo purposes.
+
+# Local CCTV footage and generated exports
+backend/data/uploads/
+backend/data/exports/
+*.mp4

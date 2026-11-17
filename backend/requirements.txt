@@ -9,3 +9,8 @@ joblib
 requests
 networkx
 httpx
+opencv-python-headless
+onnxruntime
+python-multipart
+shapely
+imageio-ffmpeg

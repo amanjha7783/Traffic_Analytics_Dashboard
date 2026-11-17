@@ -24,12 +24,12 @@ export const RiskHeatmapSection: React.FC<RiskHeatmapSectionProps> = ({
               <span className="font-headline-sm text-headline-sm font-bold text-on-surface">
                 Traffic Risk Heatmap
               </span>
-              <span className="px-2 py-0.5 rounded bg-error/15 text-error font-label-caps text-label-caps font-bold uppercase">
-                HOTSPOT DETECTION
+              <span className="px-2 py-0.5 rounded bg-amber-500/15 text-amber-300 font-label-caps text-label-caps font-bold uppercase">
+                  STATIC SAMPLE — NOT LIVE
               </span>
             </div>
             <span className="font-body-sm text-body-sm text-on-surface-variant">
-              Spatial distribution of traffic concentration and potential conflict zones
+              Illustrative image only; no calibrated risk or occupancy data is available
             </span>
           </div>
 
@@ -93,14 +93,14 @@ export const RiskHeatmapSection: React.FC<RiskHeatmapSectionProps> = ({
           {/* HUD Badges */}
           <div className="absolute top-3 left-3 px-2 py-1 rounded bg-surface-container-lowest/80 backdrop-blur-md font-label-caps text-label-caps uppercase text-on-surface border border-outline-variant/20 shadow-sm z-10">
             {viewMode === 'map' ? 'LANE TOPOLOGY • CAM 01 FULL VIEW' : 
-             viewMode === 'heatmap' ? 'AI RISK ANALYSIS FULL VIEW' : 
-             'LANE TOPOLOGY + RISK OVERLAY'}
+             viewMode === 'heatmap' ?              'STATIC SAMPLE IMAGE' :
+             'STATIC SAMPLE IMAGE — NOT A LIVE OVERLAY'}
           </div>
 
           {viewMode !== 'map' && (
             <div className="absolute top-3 right-3 px-2 py-1 rounded bg-surface-container-lowest/80 backdrop-blur-md font-label-caps text-label-caps uppercase text-error flex items-center gap-1.5 border border-error/20 shadow-sm z-10">
               <span className="h-1.5 w-1.5 rounded-full bg-error animate-ping"></span>
-              <span>AI RISK OVERLAY • {viewMode === 'overlay' ? `${opacity}%` : '100%'}</span>
+              <span>DEMO IMAGE • {viewMode === 'overlay' ? `${opacity}%` : '100%'}</span>
             </div>
           )}
         </div>
@@ -129,18 +129,18 @@ export const RiskHeatmapSection: React.FC<RiskHeatmapSectionProps> = ({
           {/* Thermal Scale Legend */}
           <div className="flex items-center gap-2">
             <span className="font-label-caps text-label-caps uppercase text-on-surface-variant">
-              Risk Intensity:
+              Sample image colors (not measured intensity):
             </span>
-            <span className="font-data-mono-sm text-[11px] text-primary">LOW</span>
+            <span className="font-data-mono-sm text-[11px] text-primary">N/A</span>
             <div className="w-36 h-2 rounded bg-gradient-to-r from-primary via-amber-400 to-error"></div>
-            <span className="font-data-mono-sm text-[11px] text-error font-bold">HIGH RISK</span>
+            <span className="font-data-mono-sm text-[11px] text-error font-bold">N/A</span>
           </div>
         </div>
 
         {/* Bottom Footnote */}
         <div className="px-space-md py-1.5 bg-surface-container-low text-on-surface-variant font-body-sm text-[12px] flex flex-wrap items-center justify-between border-t border-outline-variant/10">
           <span>
-            Prototype Risk Heatmap • AI-generated spatial risk analysis based on trajectory density and deceleration variance
+            Prototype/static assets only • not generated from the current cameras and not safety telemetry
           </span>
         </div>
       </div>
@@ -157,8 +157,8 @@ export const RiskHeatmapSection: React.FC<RiskHeatmapSectionProps> = ({
                 Collision Hotspot Digest
               </span>
             </div>
-            <span className="px-2 py-1 rounded bg-error/20 text-error font-label-caps text-label-caps font-bold uppercase border border-error/30">
-              ELEVATED
+            <span className="px-2 py-1 rounded bg-surface-container-high text-on-surface-variant font-label-caps text-label-caps font-bold uppercase border border-outline-variant/30">
+            UNAVAILABLE
             </span>
           </div>
 
@@ -169,14 +169,14 @@ export const RiskHeatmapSection: React.FC<RiskHeatmapSectionProps> = ({
               </span>
               <div className="flex items-baseline gap-1 mt-1">
                 <span className="font-display-lg text-display-lg font-bold text-error">
-                  64
+                  --
                 </span>
                 <span className="font-data-mono-md text-data-mono-md text-on-surface-variant">
                   / 100
                 </span>
               </div>
               <span className="font-data-mono-sm text-data-mono-sm text-amber-400 mt-0.5">
-                Status: Moderate-High
+                No validated conflict-event feed
               </span>
             </div>
 
@@ -189,37 +189,28 @@ export const RiskHeatmapSection: React.FC<RiskHeatmapSectionProps> = ({
                   stroke="currentColor" 
                   strokeWidth="3.5" 
                 />
-                <path 
-                  className="text-error" 
-                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" 
-                  fill="none" 
-                  stroke="currentColor" 
-                  strokeDasharray="64, 100" 
-                  strokeLinecap="round" 
-                  strokeWidth="3.5" 
-                />
               </svg>
               <span className="absolute material-symbols-outlined text-[20px] text-error">
-                warning
+                help
               </span>
             </div>
           </div>
 
           <div className="grid grid-cols-3 gap-2">
             <div className="p-2 rounded-lg bg-error/10 border border-error/20 flex flex-col items-center text-center">
-              <span className="font-headline-sm text-headline-sm font-bold text-error">4</span>
+              <span className="font-headline-sm text-headline-sm font-bold text-error">--</span>
               <span className="font-label-caps text-[9px] uppercase text-error font-semibold mt-0.5">
                 High Risk
               </span>
             </div>
             <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/20 flex flex-col items-center text-center">
-              <span className="font-headline-sm text-headline-sm font-bold text-amber-300">7</span>
+              <span className="font-headline-sm text-headline-sm font-bold text-amber-300">--</span>
               <span className="font-label-caps text-[9px] uppercase text-amber-300 font-semibold mt-0.5">
                 Medium Risk
               </span>
             </div>
             <div className="p-2 rounded-lg bg-tertiary/10 border border-tertiary/20 flex flex-col items-center text-center">
-              <span className="font-headline-sm text-headline-sm font-bold text-tertiary">12</span>
+              <span className="font-headline-sm text-headline-sm font-bold text-tertiary">--</span>
               <span className="font-label-caps text-[9px] uppercase text-tertiary font-semibold mt-0.5">
                 Low Risk
               </span>
@@ -228,13 +219,12 @@ export const RiskHeatmapSection: React.FC<RiskHeatmapSectionProps> = ({
 
           <div className="flex flex-col gap-1">
             <div className="flex items-center justify-between font-label-caps text-label-caps text-on-surface-variant">
-              <span>LOW (0-35)</span>
-              <span>MED (36-70)</span>
-              <span>HIGH (71-100)</span>
+              <span>NOT CALIBRATED</span>
+              <span>NO EVENT DATA</span>
+              <span>NOT SCORED</span>
             </div>
             <div className="w-full h-2 rounded-full bg-surface-container-highest relative overflow-hidden">
               <div className="h-full bg-gradient-to-r from-tertiary via-amber-400 to-error w-full"></div>
-              <div className="absolute top-0 bottom-0 w-1.5 bg-on-surface shadow" style={{ left: '64%' }}></div>
             </div>
           </div>
         </div>

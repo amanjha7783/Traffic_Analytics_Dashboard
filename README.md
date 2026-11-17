@@ -6,25 +6,25 @@ An end-to-end, full-stack intelligent transportation engineering platform combin
 
 ## 1. Project Overview
 
-This project upgrades the original TrafficFlow dashboard into a complete **Traffic Analytics & Intelligent Route Planning System**. It bridges real-time intersection telemetry with city-scale road-network intelligence, enabling users to:
-1. **Monitor live intersection telemetry:** Inspect camera feeds, track individual vehicle trajectories, and review collision-risk heatmaps.
-2. **Plan optimal routes across real road networks:** Geocode origins and destinations, calculate baseline road routes via OpenStreetMap/OSRM, visualize interactive road geometry with Leaflet, and compare alternative paths.
-3. **Analyze historical traffic dynamics:** Query hourly volume profiles, observe speed drops, compare weekday vs. weekend patterns, detect peak congestion windows, and track daily congestion index trends.
-4. **Forecast 24-hour traffic conditions using Machine Learning:** Predict corridor travel times, velocities, and traffic volumes across all hours of the day using a trained XGBoost regression model.
+This project combines route planning and historical analytics with an operational two-camera / recorded-video computer-vision pipeline. Camera status and streams are sourced from the backend; recorded uploads produce confirmed-track counts, annotated video, and downloadable CSV/JSON summaries. Historical trajectory and traffic CSV files in this repository are demonstration inputs, not live sensor measurements.
+
+The Overview page plays the latest completed annotated recording and shows its vehicle-category totals. It is labeled as recorded footage; live camera configuration and processing another recording remain in Traffic Monitor.
+
+Forecasting currently selects a historical same-hour baseline unless the serialized XGBoost model is available and has a lower saved chronological-test MAE. Existing evaluation data are synthetic; no production accuracy claim is made. Deep-learning forecasting, calibrated physical speed/occupancy, and validated collision/PET detection are not available until corresponding models, sensor data, and calibration are supplied.
 
 ---
 
 ## 2. Key Features
 
-### Preserved Core Features
-- **Traffic Monitor Matrix:** Quad (2x2) and Focused (1x1) multi-camera surveillance view with RTSP telemetry specs.
-- **Vehicle Trajectory Tracking:** Dynamic spatial mapping of tracked vehicles with speed, heading, and collision potential.
-- **Traffic Risk Heatmap:** Interactive spatial risk heatmap overlay with adjustable opacity controls.
-- **Dynamic KPIs & AI Insights:** Real-time metrics for flow rate, average speed, collision risk score, and TTC alerts.
-- **Safety Audit Reports:** Tabular incident logs with filterable severity levels and export actions.
+### Preserved and Integrated Features
+- **Live camera monitoring:** Configure two or more RTSP, local-video, or webcam sources; start/stop streams and view server-side annotated MJPEG feeds. RTSP credentials are read from backend environment variables and are not returned to the browser.
+- **Recorded-video processing:** Upload MP4/MOV/AVI/MKV files, optionally draw a counting line, monitor processing, pause/resume/stop, and download annotated MP4, category totals, track details, minute-offset counts, and JSON results.
+- **Vehicle detection and tracking:** Confirmed unique tracks are counted separately from line crossings. Standard COCO weights do not identify three-wheelers; that category requires compatible fine-tuned weights and an explicit class mapping.
+- **Corridor setup:** Store camera pairs and request road geometry/distance from OSRM using camera coordinates. Ground-plane calibration is a separate, camera-specific operation.
+- **Historical trajectory, analytics, route planning, and forecasting:** Existing views remain. Demo data and prototype/static visualizations are labeled; unsupported live values are shown as unavailable rather than inferred.
 - **Light / Dark Mode:** Full dual-theme design system powered by Tailwind CSS variables.
 
-### Newly Added Features
+### Existing Planning Features
 - **Intelligent Route Planner (`/src/pages/RoutePlanner.tsx`):**
   - Origin, destination, and city geocoding with OpenStreetMap Nominatim and Photon APIs.
   - Interactive Leaflet map with real road geometry, polyline rendering, and custom SVG markers.
@@ -38,9 +38,16 @@ This project upgrades the original TrafficFlow dashboard into a complete **Traff
   - Automated peak congestion hour detection (morning vs. evening rush hour windows).
   - Daily Congestion Index trendline over time.
 - **24-Hour Traffic Forecast (`/src/pages/TrafficForecast.tsx`):**
-  - Corridor-specific 24-hour predictive travel time, speed, and volume curves.
+  - Corridor-specific 24-hour forecast from earlier same-hour observations.
   - Diurnal breakdown cards comparing morning, afternoon, and evening conditions.
-  - Live model telemetry card reporting XGBoost architecture, test MAE/RMSE, and training sample counts.
+  - Model telemetry selects XGBoost only when it beats the historical baseline on saved chronological test metrics.
+
+### Data and calibration limitations
+- The bundled historical traffic CSV and trajectory JSON are sample/demo data. Missing historical data no longer triggers automatic synthetic generation.
+- Uploaded-video speed is not physical speed. It requires calibrated ground-plane scale and synchronized timestamps.
+- Road occupancy requires valid road geometry, camera homography, and vehicle footprints; dimensions alone are estimates.
+- Cross-camera re-identification and safety conflict alerts are not presented as verified measurements in the current dashboard.
+- Minute counts for uploaded videos use recording-relative offsets. An absolute recording timestamp is left blank when the source provides none.
 
 ---
 
@@ -197,13 +204,23 @@ npm run dev
 ```
 - Dashboard UI: `http://localhost:5173`
 
+### Configure cameras and run a recording
+1. In `Traffic Monitor`, add two camera records with distinct IDs and provide their GPS coordinates if you intend to create a corridor.
+2. For RTSP cameras, set backend-only environment variables such as `CAMERA_RTSP_CAM_01=rtsp://...` before starting FastAPI. The ID is normalized to uppercase with punctuation replaced by underscores. Do not put credentials in the frontend or commit them.
+3. Start each configured camera from its card. The UI shows a live annotated feed only while the backend worker is connected.
+4. Upload a recording in `Traffic Monitor`. Optionally click two points on the preview to configure the finite counting line. Results can be partial if processing is stopped or interrupted.
+5. To create a corridor, select two configured cameras and provide their GPS locations. OSRM route lookup requires network access. Calibration requires at least four paired image/ground control points per camera via `POST /api/corridors/{corridor_id}/calibration`.
+
+The default detector is the bundled COCO ONNX model. It includes person, bicycle, car, motorcycle, bus, and truck classes, but not auto-rickshaw/three-wheeler. Supply compatible custom weights and `TRAFFIC_CLASS_MAPPING_JSON` to enable that category. Camera-local speed and road occupancy are not shown as physical measurements without calibration.
+
 ---
 
 ## 8. Dataset Strategy & Data Sources
 
 ### Demonstration Data (Included)
 The repository includes a clearly labeled synthetic dataset in `backend/data/historical_traffic.csv` generated using the standard **Bureau of Public Roads (BPR)** volume-delay relationship across 8 arterial road corridors in Lucknow over 30 days (5,768 records).
-- All API responses and UI cards explicitly display the **`SIMULATED DEMO DATA`** indicator.
+- The historical API includes a provenance field and marks these records as `SIMULATED DEMO DATA`. Live camera and recorded-video results have separate source labels.
+- If the CSV is missing or invalid, the application returns no historical observations; it no longer silently generates replacement measurements.
 
 ### Connecting Real-World Datasets
 1. **Caltrans PeMS (Freeway Performance Measurement System):**
@@ -235,7 +252,7 @@ The repository includes a clearly labeled synthetic dataset in `backend/data/his
 
 ## 9. Machine Learning Pipeline & Training
 
-The travel-time prediction model is trained using **XGBoost Regressor** with strict **chronological time-series splitting** (no random shuffling, preventing future data leakage into the past).
+The repository includes an **XGBoost Regressor** trained with a chronological split. The saved metrics show that it performs worse than the historical same-hour baseline, so the inference service selects the baseline unless evaluation metadata shows XGBoost has a lower MAE. These metrics use synthetic data and do not establish field accuracy. No deep-learning forecast model is supplied or presented as available.
 
 ### Input Features
 1. `hour` (0 to 23)
@@ -316,26 +333,18 @@ cd E:\Traffic_Analytics_Dashboard\backend
 Run the pytest test suite:
 ```powershell
 cd E:\Traffic_Analytics_Dashboard\backend
-.\venv\Scripts\python.exe -m pytest tests/test_api.py -v
+python -m pytest -q
 ```
-All 9 unit tests cover:
-- Health check
-- Trajectory ingestion
-- Overview analytics
-- Monitored roads listing
-- 24-hour traffic forecasting
-- Historical analytics and peak hour detection
-- Model telemetry reporting
-- Route parameter validation
-- Geocoding error handling for unresolvable locations
+Tests cover existing API behavior plus camera source privacy, corridor registration, forecast provenance and validation, calibration guards, counting-line intersections, and unique-track/export consistency.
 
 ### Running Frontend Production Build
 Verify TypeScript compilation and bundling:
 ```powershell
 cd E:\Traffic_Analytics_Dashboard\frontend
 npm run build
+npx tsc --noEmit
+npm run lint
 ```
-Builds cleanly with zero errors in ~700ms.
 
 ---
 
@@ -343,22 +352,29 @@ Builds cleanly with zero errors in ~700ms.
 
 | Feature | Status | Provenance & Notes |
 |---|---|---|
-| **Traffic Monitor View** | Genuinely Implemented | Uses local video asset & camera stream switcher |
-| **Trajectory Tracking** | Genuinely Implemented | Served from `trajectory_data.json` via `/api/trajectories` |
-| **Risk Heatmap** | Genuinely Implemented | Canvas overlay with opacity slider & hotspot detection |
+| **Traffic Monitor View** | Implemented | Backend-configured camera sources; no mock feed |
+| **Recorded Video Processing** | Implemented | Confirmed unique tracks, optional finite counting line, annotated MP4 and CSV/JSON exports |
+| **Trajectory File View** | Implemented | Displays source coordinates without claiming calibration or live status |
+| **Risk Heatmap** | Prototype only | Static sample imagery; not derived from current camera telemetry |
+| **Corridor Geometry / Calibration** | Implemented | OSRM road geometry and per-camera homography API/dashboard setup |
 | **Route Planner** | Genuinely Implemented | Real OSM road geometry from OSRM + Nominatim geocoding |
 | **Leaflet Map Integration** | Genuinely Implemented | Interactive vector polylines, SVG pins, auto-fitting bounds |
 | **Alternative Routes** | Genuinely Implemented | Ranked comparison table with selectable preview |
 | **Baseline Routing** | Genuinely Implemented | Shortest real road distance |
 | **Traffic-Aware Routing** | Implemented with Simulation | Integrated with ML travel-time predictions; clearly tagged |
-| **24-Hour Forecast** | Genuinely Implemented | Powered by trained XGBoost Regressor |
-| **Historical Analytics** | Genuinely Implemented | Diurnal volume, speed profiles, weekday vs weekend, peak hours |
+| **24-Hour Forecast** | Implemented with gating | Historical same-hour baseline; XGBoost only when validated better |
+| **Deep-Learning Forecast** | Unavailable | No trained sequence/DL model or category-wise observation data supplied |
+| **Historical Analytics** | Implemented on demo data | Diurnal volume, speed profiles, weekday vs weekend, peak hours |
 | **Light / Dark Mode** | Genuinely Implemented | Dual theme switcher with full CSS variable mapping |
 
 ---
 
 ## 14. Current Limitations
 
-1. **Synthetic Historical Dataset:** Real-time arterial sensors (loop detectors or licensed probe GPS feeds) are required for field deployment; the current demonstration uses BPR synthetic generation.
-2. **OSRM Public Demo Server:** The public OSRM demo server has soft rate limits. For production city-scale routing, host a dedicated local OSRM instance using Docker (`osrm/osrm-backend`).
-3. **Nominatim Usage Policy:** Complies with the 1 request/second rule using built-in rate-limiting and pre-cached landmarks.
+1. **Synthetic Historical Dataset:** Real-time arterial sensors (loop detectors or licensed probe GPS feeds) are required for field deployment; bundled historical values are BPR-generated demonstration data.
+2. **Three-Wheeler Detection:** COCO weights have no auto-rickshaw class. Compatible fine-tuned weights and a verified mapping are required.
+3. **Cross-Camera Matching:** Track IDs are local to each camera. Cross-camera matches are not currently treated as verified unique counts or physical travel-speed measurements.
+4. **Calibration-Dependent Metrics:** Physical speed, road occupancy, and corridor density are unavailable until appropriate calibration, dimensions, and synchronized events are provided.
+5. **Safety Events:** Conflict/PET alerts and signal-cycle efficiency are not implemented telemetry; the report UI does not fabricate them.
+6. **OSRM Public Demo Server:** The public OSRM demo server has soft rate limits. For production city-scale routing, host a dedicated local OSRM instance using Docker (`osrm/osrm-backend`).
+7. **Nominatim Usage Policy:** Complies with the 1 request/second rule using built-in rate-limiting and pre-cached landmarks.

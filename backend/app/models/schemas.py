@@ -13,9 +13,11 @@ class TrajectoryPoint(BaseModel):
 class AnalyticsSummary(BaseModel):
     total_vehicles: int
     average_speed: float
-    active_tracks: int
-    risk_level: str
-    risk_score: int
+    active_tracks: Optional[int] = None
+    risk_level: Optional[str] = None
+    risk_score: Optional[int] = None
+    data_source: str = "HISTORICAL TRAJECTORY FILE"
+    is_demo_data: bool = True
 
 class VehicleCountOverTime(BaseModel):
     timestamp: float

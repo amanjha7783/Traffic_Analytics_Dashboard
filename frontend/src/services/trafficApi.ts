@@ -10,7 +10,8 @@ import type {
   ModelInfoResponse,
 } from '../types';
 
-const API_URL = 'http://localhost:8000/api';
+export const API_ORIGIN = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_URL = `${API_ORIGIN}/api`;
 
 export const fetchRoadSegments = async (): Promise<RoadsListResponse> => {
   const res = await axios.get(`${API_URL}/traffic/roads`);

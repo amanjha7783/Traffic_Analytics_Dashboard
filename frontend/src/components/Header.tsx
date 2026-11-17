@@ -1,25 +1,16 @@
-import React, { useState } from 'react';
-import { CameraStream } from '../types';
+import React from 'react';
 
 interface HeaderProps {
-  currentCamera: CameraStream;
-  allCameras: CameraStream[];
-  onSelectCamera: (cam: CameraStream) => void;
   onToggleMobileMenu: () => void;
   theme: 'light' | 'dark';
   onToggleTheme: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
-  currentCamera,
-  allCameras,
-  onSelectCamera,
   onToggleMobileMenu,
   theme,
-  onToggleTheme
+  onToggleTheme,
 }) => {
-  const [showCamDropdown, setShowCamDropdown] = useState(false);
-
   return (
     <header className="sticky top-0 w-full h-16 bg-surface/90 backdrop-blur-xl border-b border-outline-variant/30 z-40 px-space-md lg:px-space-lg flex items-center justify-between shadow-sm transition-colors duration-300">
       <div className="flex items-center gap-3">
@@ -39,7 +30,7 @@ export const Header: React.FC<HeaderProps> = ({
             </span>
           </div>
           <span className="hidden sm:inline-block font-body-sm text-on-surface-variant">
-            Intersection traffic and collision-risk monitoring
+            Annotated traffic video and vehicle counts
           </span>
         </div>
       </div>
@@ -60,41 +51,6 @@ export const Header: React.FC<HeaderProps> = ({
           )}
         </button>
 
-        {/* Camera Selector Dropdown */}
-        <div className="relative hidden xl:block">
-          <button
-            onClick={() => setShowCamDropdown(!showCamDropdown)}
-            className="flex items-center gap-space-xs text-on-surface-variant hover:text-on-surface font-body-sm bg-surface-container-low px-3 py-1.5 rounded-lg border border-outline-variant/20 hover:border-outline-variant/40 transition-colors shadow-sm"
-          >
-            <span className="material-symbols-outlined text-primary text-[18px]">videocam</span>
-            <span className="font-medium">{currentCamera.name.split('(')[0].trim()}</span>
-            <span className="material-symbols-outlined text-[16px] ml-1">expand_more</span>
-          </button>
-
-          {showCamDropdown && (
-            <div className="absolute top-full right-0 mt-2 w-64 bg-surface-container-low rounded-xl border border-outline-variant/20 shadow-xl p-2 z-50 flex flex-col gap-1">
-              <div className="px-2 py-1 text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1">
-                Select Active Junction
-              </div>
-              {allCameras.map((cam) => (
-                <button
-                  key={cam.id}
-                  onClick={() => {
-                    onSelectCamera(cam);
-                    setShowCamDropdown(false);
-                  }}
-                  className={`flex items-center justify-between px-3 py-2 rounded-lg text-left transition-colors ${
-                    cam.id === currentCamera.id
-                      ? 'bg-primary-container text-on-primary-container font-semibold shadow-sm'
-                      : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'
-                  }`}
-                >
-                  <span className="font-medium text-sm">{cam.name}</span>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
       </div>
     </header>
   );
