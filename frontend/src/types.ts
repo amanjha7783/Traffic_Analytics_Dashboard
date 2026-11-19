@@ -1,5 +1,6 @@
 export type NavTab = 
   | 'overview' 
+  | 'video-intelligence'
   | 'traffic-monitor' 
   | 'trajectories' 
   | 'analytics' 

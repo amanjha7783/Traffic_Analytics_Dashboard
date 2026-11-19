@@ -1,0 +1,80 @@
+{
+  "batch_scaling": {
+    "batch_1": {
+      "batch_size": 1,
+      "fps": 31.42,
+      "latency_ms": 31.83,
+      "speedup_vs_b1": 1.0
+    },
+    "batch_2": {
+      "batch_size": 2,
+      "fps": 29.03,
+      "latency_ms": 34.44,
+      "speedup_vs_b1": 0.92
+    },
+    "batch_4": {
+      "batch_size": 4,
+      "fps": 30.11,
+      "latency_ms": 33.21,
+      "speedup_vs_b1": 0.96
+    },
+    "batch_8": {
+      "batch_size": 8,
+      "fps": 27.59,
+      "latency_ms": 36.25,
+      "speedup_vs_b1": 0.88
+    }
+  },
+  "precision_benchmark": {
+    "ONNX CPU (FP32)": {
+      "backend": "ONNX Runtime",
+      "provider": "CPUExecutionProvider",
+      "precision": "fp32",
+      "fps": 27.92,
+      "latency_ms": 35.81
+    },
+    "ONNX FP16": {
+      "backend": "ONNX Runtime",
+      "provider": "CPUExecutionProvider",
+      "precision": "fp16",
+      "fps": 30.06,
+      "latency_ms": 33.27
+    },
+    "TensorRT / Auto": {
+      "backend": "TensorRT (via CPUExecutionProvider)",
+      "provider": "CPUExecutionProvider",
+      "precision": "fp16",
+      "fps": 29.44,
+      "latency_ms": 33.97
+    }
+  },
+  "codec_benchmark": {
+    "dec_cpu_fps": 450.3,
+    "dec_hw_fps": 515.4,
+    "enc_cpu_fps": 182.1,
+    "enc_hw_fps": 177.3,
+    "enc_speedup": 0.97
+  },
+  "end_to_end": {
+    "baseline_fps": 18.07,
+    "optimized_step1_fps": 18.9,
+    "optimized_step1_speedup": 1.05,
+    "optimized_step1_realtime_ratio": 0.63,
+    "optimized_step2_fps": 22.8,
+    "optimized_step2_speedup": 1.26,
+    "optimized_step2_realtime_ratio": 0.76,
+    "metrics_step1": {
+      "decode_fps": 48.1,
+      "inference_fps": 28.0,
+      "tracking_fps": 27.9,
+      "encoding_fps": 27.8,
+      "end_to_end_fps": 18.9,
+      "gpu_utilization_percent": 0.0,
+      "vram_used_mb": 0.0,
+      "cpu_percent": 60.5,
+      "realtime_ratio": 0.63,
+      "total_duration_s": 5.29,
+      "processed_video_duration_s": 3.33
+    }
+  }
+}

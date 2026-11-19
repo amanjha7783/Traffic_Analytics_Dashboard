@@ -1,0 +1,18 @@
+{
+  "num_frames": 100,
+  "decode_fps": 498.07,
+  "decode_ms": 2.01,
+  "preprocess_fps": 209.83,
+  "preprocess_ms": 4.77,
+  "infer_fps": 26.21,
+  "infer_ms": 38.15,
+  "track_fps": 391.67,
+  "track_ms": 2.55,
+  "encode_fps": 127.15,
+  "encode_ms": 7.86,
+  "db_single_ms": 10.14,
+  "db_batch_ms": 2.15,
+  "baseline_fps": 18.07,
+  "baseline_total_ms": 55.34,
+  "realtime_ratio": 0.6
+}

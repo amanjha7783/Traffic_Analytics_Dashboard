@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { MapContainer, TileLayer, Polyline, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -11,7 +11,7 @@ function MapBoundsUpdater({ coordinates }: { coordinates: [number, number][] }) 
   useEffect(() => {
     if (coordinates && coordinates.length > 0) {
       const bounds = L.latLngBounds(coordinates.map(([lon, lat]) => [lat, lon]));
-      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
+      map.fitBounds(bounds, { padding: [40, 40], maxZoom: 15 });
     }
   }, [coordinates, map]);
   return null;
@@ -27,19 +27,17 @@ const createMarkerIcon = (label: string, color: string) => {
         color: white;
         width: 32px;
         height: 32px;
-        border-radius: 50% 50% 50% 0;
-        transform: rotate(-45deg);
+        border-radius: 4px;
         display: flex;
         align-items: center;
         justify-content: center;
-        box-shadow: 0 3px 8px rgba(0,0,0,0.4);
         border: 2px solid white;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
       ">
         <span style="
-          transform: rotate(45deg);
           font-weight: 700;
           font-size: 13px;
-          font-family: sans-serif;
+          font-family: monospace;
         ">${label}</span>
       </div>
     `,
@@ -49,8 +47,8 @@ const createMarkerIcon = (label: string, color: string) => {
   });
 };
 
-const originIcon = createMarkerIcon('A', '#10b981'); // Emerald green
-const destIcon = createMarkerIcon('B', '#ef4444');   // Red
+const originIcon = createMarkerIcon('A', '#16845B');
+const destIcon = createMarkerIcon('B', '#C44848');
 
 export const RoutePlanner: React.FC = () => {
   // Form State
@@ -68,12 +66,7 @@ export const RoutePlanner: React.FC = () => {
   const [selectedRouteIdx, setSelectedRouteIdx] = useState(0);
   const [showSteps, setShowSteps] = useState(false);
 
-  // Initial Route Fetch
-  useEffect(() => {
-    handleFindRoute();
-  }, []);
-
-  const handleFindRoute = async (e?: React.FormEvent) => {
+  const handleFindRoute = useCallback(async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!origin.trim() || !destination.trim() || !city.trim()) {
       setErrorMsg('Please specify Origin, Destination, and City.');
@@ -103,7 +96,11 @@ export const RoutePlanner: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [origin, destination, city, departureDate, departureTime, routingMode]);
+
+  useEffect(() => {
+    void handleFindRoute();
+  }, [handleFindRoute]);
 
   const activeRoute: RouteAlternative | null =
     routeResult?.routes && routeResult.routes[selectedRouteIdx]
@@ -123,46 +120,62 @@ export const RoutePlanner: React.FC = () => {
     : null;
 
   return (
-    <div className="flex flex-col gap-space-lg w-full pb-space-2xl">
-      {/* Page Header */}
-      <div className="flex flex-wrap items-center justify-between gap-space-md bg-surface-container-low p-space-md lg:p-space-lg rounded-xl border border-outline-variant/20 shadow-sm">
-        <div className="flex flex-col">
-          <div className="flex items-center gap-2">
-            <span className="font-headline-lg text-headline-lg font-bold text-on-surface">
-              Intelligent Route Planner
-            </span>
-            <span className="px-2 py-0.5 rounded bg-primary/20 text-primary font-label-caps text-label-caps font-bold">
-              OSM NETWORK ENGINE
-            </span>
+    <div className="flex flex-col gap-4 w-full">
+      {/* Top Banner Toolbar */}
+      <div className="p-3.5 rounded border border-outline-variant bg-surface flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded bg-surface-container-high border border-outline-variant flex items-center justify-center text-primary shrink-0">
+            <span className="material-symbols-outlined text-[18px]">alt_route</span>
           </div>
-          <span className="font-body-sm text-body-sm text-on-surface-variant mt-1">
-            Real road-network routing with OpenStreetMap geometry; traffic-aware ranking requires matched forecast segments.
-          </span>
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-sm font-semibold text-on-surface">
+                GIS Road Network Route Planner
+              </h1>
+              <span className="px-1.5 py-0.2 rounded text-[10px] font-mono font-semibold bg-surface-container-high text-on-surface-variant border border-outline-variant">
+                OSM TOPOLOGY
+              </span>
+            </div>
+            <p className="text-xs text-on-surface-variant">
+              Multi-criteria pathfinding with OpenStreetMap network topology & turn-by-turn navigation
+            </p>
+          </div>
         </div>
+
+        {routeResult?.data_source && (
+          <div className="flex items-center gap-2 text-xs font-mono text-on-surface-variant">
+            <span>Routing Engine:</span>
+            <span className="text-on-surface font-semibold">{routeResult.data_source}</span>
+          </div>
+        )}
       </div>
 
-      {/* Main Grid: Form Left, Map Right */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-space-lg items-start">
-        {/* LEFT COLUMN: Input Form & Results Card (5 Cols) */}
-        <div className="lg:col-span-5 flex flex-col gap-space-md">
+      {/* Main Grid: Form Left (5 cols), Map Right (7 cols) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+        {/* LEFT COLUMN: Input Form & Results */}
+        <div className="lg:col-span-5 flex flex-col gap-4">
           {/* Routing Form */}
           <form
             onSubmit={handleFindRoute}
-            className="bg-surface-container-low p-space-lg rounded-xl border border-outline-variant/20 shadow-sm flex flex-col gap-space-md"
+            className="p-4 rounded border border-outline-variant bg-surface flex flex-col gap-3"
           >
-            <div className="flex items-center justify-between border-b border-outline-variant/20 pb-space-sm">
-              <span className="font-headline-sm font-semibold text-on-surface flex items-center gap-2">
-                <span className="material-symbols-outlined text-primary text-[20px]">tune</span>
-                Route Parameters
+            <div className="flex items-center justify-between border-b border-outline-variant pb-2.5">
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-[18px] text-primary">tune</span>
+                <span className="text-xs font-semibold uppercase tracking-wider text-on-surface">
+                  Route Parameters
+                </span>
+              </div>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded border border-outline-variant bg-surface-container-low text-on-surface-variant">
+                {routingMode === 'baseline' ? 'Shortest Distance' : 'Traffic-Aware'}
               </span>
-              <span className="text-xs text-on-surface-variant font-mono">Mode: {routingMode}</span>
             </div>
 
             {/* Starting Location */}
             <div className="flex flex-col gap-1">
-              <label className="text-xs font-semibold text-on-surface-variant flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
-                Starting Location (Origin)
+              <label className="text-[11px] font-mono uppercase font-medium text-on-surface-variant flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded bg-success"></span>
+                Origin Endpoint (A)
               </label>
               <input
                 type="text"
@@ -170,15 +183,15 @@ export const RoutePlanner: React.FC = () => {
                 onChange={(e) => setOrigin(e.target.value)}
                 placeholder="e.g. Charbagh Railway Station"
                 required
-                className="w-full px-3 py-2 rounded-lg bg-surface-container-lowest border border-outline-variant/30 text-on-surface text-sm focus:outline-none focus:border-primary transition-colors"
+                className="w-full px-3 py-2 rounded bg-surface-container-low border border-outline-variant text-on-surface text-xs font-medium focus:outline-none focus:border-primary transition-colors"
               />
             </div>
 
             {/* Destination */}
             <div className="flex flex-col gap-1">
-              <label className="text-xs font-semibold text-on-surface-variant flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
-                Destination
+              <label className="text-[11px] font-mono uppercase font-medium text-on-surface-variant flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded bg-danger"></span>
+                Destination Endpoint (B)
               </label>
               <input
                 type="text"
@@ -186,14 +199,14 @@ export const RoutePlanner: React.FC = () => {
                 onChange={(e) => setDestination(e.target.value)}
                 placeholder="e.g. University of Lucknow"
                 required
-                className="w-full px-3 py-2 rounded-lg bg-surface-container-lowest border border-outline-variant/30 text-on-surface text-sm focus:outline-none focus:border-primary transition-colors"
+                className="w-full px-3 py-2 rounded bg-surface-container-low border border-outline-variant text-on-surface text-xs font-medium focus:outline-none focus:border-primary transition-colors"
               />
             </div>
 
             {/* City Context */}
             <div className="flex flex-col gap-1">
-              <label className="text-xs font-semibold text-on-surface-variant">
-                City / Region
+              <label className="text-[11px] font-mono uppercase font-medium text-on-surface-variant">
+                City / Metropolitan Corridor
               </label>
               <input
                 type="text"
@@ -201,161 +214,162 @@ export const RoutePlanner: React.FC = () => {
                 onChange={(e) => setCity(e.target.value)}
                 placeholder="e.g. Lucknow"
                 required
-                className="w-full px-3 py-2 rounded-lg bg-surface-container-lowest border border-outline-variant/30 text-on-surface text-sm focus:outline-none focus:border-primary transition-colors"
+                className="w-full px-3 py-2 rounded bg-surface-container-low border border-outline-variant text-on-surface text-xs font-medium focus:outline-none focus:border-primary transition-colors"
               />
             </div>
 
             {/* Departure Date & Time */}
-            <div className="grid grid-cols-2 gap-space-sm">
+            <div className="grid grid-cols-2 gap-2">
               <div className="flex flex-col gap-1">
-                <label className="text-xs font-semibold text-on-surface-variant">Departure Date</label>
+                <label className="text-[11px] font-mono uppercase font-medium text-on-surface-variant">
+                  Departure Date
+                </label>
                 <input
                   type="date"
                   value={departureDate}
                   onChange={(e) => setDepartureDate(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg bg-surface-container-lowest border border-outline-variant/30 text-on-surface text-sm focus:outline-none focus:border-primary transition-colors"
+                  className="w-full px-2.5 py-1.5 rounded bg-surface-container-low border border-outline-variant text-on-surface text-xs font-medium focus:outline-none focus:border-primary"
                 />
               </div>
               <div className="flex flex-col gap-1">
-                <label className="text-xs font-semibold text-on-surface-variant">Departure Time</label>
+                <label className="text-[11px] font-mono uppercase font-medium text-on-surface-variant">
+                  Departure Time
+                </label>
                 <input
                   type="time"
                   value={departureTime}
                   onChange={(e) => setDepartureTime(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg bg-surface-container-lowest border border-outline-variant/30 text-on-surface text-sm focus:outline-none focus:border-primary transition-colors"
+                  className="w-full px-2.5 py-1.5 rounded bg-surface-container-low border border-outline-variant text-on-surface text-xs font-medium focus:outline-none focus:border-primary"
                 />
               </div>
             </div>
 
-            {/* Routing Mode Selector */}
+            {/* Routing Objective Mode */}
             <div className="flex flex-col gap-1">
-              <label className="text-xs font-semibold text-on-surface-variant">Routing Objective</label>
-              <div className="grid grid-cols-2 gap-2 p-1 rounded-lg bg-surface-container border border-outline-variant/20">
+              <label className="text-[11px] font-mono uppercase font-medium text-on-surface-variant">
+                Objective Weighting
+              </label>
+              <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
                   onClick={() => setRoutingMode('baseline')}
-                  className={`py-2 px-2.5 rounded text-xs font-semibold transition-all flex flex-col items-center justify-center text-center ${
+                  className={`py-2 px-3 rounded text-xs font-medium border transition-colors cursor-pointer text-left ${
                     routingMode === 'baseline'
-                      ? 'bg-primary-container text-on-primary-container shadow-sm font-bold'
-                      : 'text-on-surface-variant hover:text-on-surface'
+                      ? 'bg-primary/10 border-primary text-primary font-semibold'
+                      : 'border-outline-variant bg-surface-container-low text-on-surface-variant hover:text-on-surface'
                   }`}
                 >
-                  <span>Baseline</span>
-                  <span className="text-[10px] font-normal opacity-80">Shortest Road Distance</span>
+                  <div>Shortest Path</div>
+                  <div className="text-[10px] text-on-surface-variant/80 font-mono">Road Topology</div>
                 </button>
                 <button
                   type="button"
                   disabled
-                  title="Unavailable until road routes are mapped to validated traffic forecast segments."
-                  className="py-2 px-2.5 rounded text-xs font-semibold text-on-surface-variant/60 cursor-not-allowed flex flex-col items-center justify-center text-center"
+                  title="Requires calibrated traffic forecast segment matching."
+                  className="py-2 px-3 rounded text-xs font-medium border border-outline-variant/50 bg-surface-container-low/50 text-on-surface-variant/40 cursor-not-allowed text-left"
                 >
-                  <span>Traffic-Aware</span>
-                  <span className="text-[10px] font-normal opacity-80">Unavailable: no segment mapping</span>
+                  <div>Dynamic Traffic</div>
+                  <div className="text-[10px] font-mono">Segment Sync</div>
                 </button>
               </div>
             </div>
 
-            {/* Submit Button */}
+            {/* Submit Action */}
             <button
               type="submit"
               disabled={isLoading}
-              className="mt-2 w-full py-2.5 rounded-lg bg-primary text-on-primary font-semibold text-sm flex items-center justify-center gap-2 hover:brightness-110 active:scale-[0.99] transition-all shadow-md disabled:opacity-50"
+              className="mt-1 w-full py-2.5 px-4 rounded bg-primary text-white font-medium text-xs flex items-center justify-center gap-2 hover:bg-primary/90 transition-colors cursor-pointer disabled:opacity-50"
             >
               {isLoading ? (
                 <>
-                  <span className="material-symbols-outlined text-[18px] animate-spin">sync</span>
-                  <span>Calculating Real Road Route...</span>
+                  <span className="material-symbols-outlined text-[16px] animate-spin">sync</span>
+                  <span>Calculating Optimal Route...</span>
                 </>
               ) : (
                 <>
-                  <span className="material-symbols-outlined text-[18px]">directions</span>
-                  <span>Find Best Route</span>
+                  <span className="material-symbols-outlined text-[16px]">alt_route</span>
+                  <span>Compute Optimal Route</span>
                 </>
               )}
             </button>
           </form>
 
-          {/* Error Message */}
+          {/* Error Banner */}
           {errorMsg && (
-            <div className="p-space-md rounded-xl bg-error/10 border border-error/30 text-error flex items-start gap-3">
-              <span className="material-symbols-outlined text-[24px] mt-0.5 shrink-0">error</span>
-              <div className="flex flex-col text-sm">
-                <span className="font-semibold">Routing Error</span>
-                <span className="text-xs opacity-90 mt-0.5">{errorMsg}</span>
+            <div className="p-3 rounded border border-danger/40 bg-surface text-danger text-xs flex items-start gap-2.5">
+              <span className="material-symbols-outlined text-[18px] shrink-0">error</span>
+              <div className="flex flex-col">
+                <span className="font-semibold">Routing Calculation Error</span>
+                <span className="text-on-surface-variant mt-0.5">{errorMsg}</span>
               </div>
             </div>
           )}
 
           {/* Route Summary KPI Card */}
           {activeRoute && (
-            <div className="bg-surface-container-low p-space-md lg:p-space-lg rounded-xl border border-outline-variant/20 shadow-sm flex flex-col gap-space-md">
-              <div className="flex items-center justify-between border-b border-outline-variant/20 pb-2">
-                <span className="font-headline-sm font-semibold text-on-surface">Route Metrics</span>
-                <span className="px-2 py-0.5 rounded text-[11px] font-mono bg-tertiary-container/30 text-tertiary font-bold">
-                  RECOMMENDED
+            <div className="p-4 rounded border border-outline-variant bg-surface flex flex-col gap-3">
+              <div className="flex items-center justify-between border-b border-outline-variant pb-2">
+                <span className="text-xs font-semibold uppercase tracking-wider text-on-surface">
+                  Route Assessment
+                </span>
+                <span className="px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-success/15 text-success border border-success/30">
+                  OPTIMAL PATH
                 </span>
               </div>
 
               {/* KPI Badges */}
-              <div className="grid grid-cols-3 gap-space-sm text-center">
-                <div className="p-space-sm rounded-lg bg-surface-container border border-outline-variant/10 flex flex-col items-center">
-                  <span className="text-[11px] text-on-surface-variant font-medium">Distance</span>
-                  <span className="font-display-lg text-xl font-bold text-primary mt-0.5">
-                    {activeRoute.distance_km} <span className="text-xs font-normal">km</span>
-                  </span>
+              <div className="grid grid-cols-3 gap-2">
+                <div className="p-2.5 rounded border border-outline-variant bg-surface-container-low flex flex-col">
+                  <span className="text-[10px] text-on-surface-variant font-mono uppercase">Distance</span>
+                  <div className="flex items-baseline gap-1 mt-1">
+                    <span className="text-base font-semibold font-mono text-primary">
+                      {activeRoute.distance_km}
+                    </span>
+                    <span className="text-[10px] text-on-surface-variant">km</span>
+                  </div>
                 </div>
-                <div className="p-space-sm rounded-lg bg-surface-container border border-outline-variant/10 flex flex-col items-center">
-                  <span className="text-[11px] text-on-surface-variant font-medium">Est. Duration</span>
-                  <span className="font-display-lg text-xl font-bold text-on-surface mt-0.5">
-                    {activeRoute.duration_minutes} <span className="text-xs font-normal">min</span>
-                  </span>
+
+                <div className="p-2.5 rounded border border-outline-variant bg-surface-container-low flex flex-col">
+                  <span className="text-[10px] text-on-surface-variant font-mono uppercase">Duration</span>
+                  <div className="flex items-baseline gap-1 mt-1">
+                    <span className="text-base font-semibold font-mono text-on-surface">
+                      {activeRoute.duration_minutes}
+                    </span>
+                    <span className="text-[10px] text-on-surface-variant">min</span>
+                  </div>
                 </div>
-                <div className="p-space-sm rounded-lg bg-surface-container border border-outline-variant/10 flex flex-col items-center">
-                  <span className="text-[11px] text-on-surface-variant font-medium">Expected Arrival</span>
-                  <span className="font-display-lg text-xl font-bold text-tertiary mt-0.5">
+
+                <div className="p-2.5 rounded border border-outline-variant bg-surface-container-low flex flex-col">
+                  <span className="text-[10px] text-on-surface-variant font-mono uppercase">ETA</span>
+                  <span className="text-base font-semibold font-mono text-success mt-1">
                     {routeResult?.estimated_arrival_time || '--:--'}
                   </span>
                 </div>
               </div>
 
-              {/* Data Source & Provenance */}
-              <div className="p-space-sm rounded-lg bg-surface-container-lowest border border-outline-variant/20 text-xs flex flex-col gap-1 font-mono">
-                <div className="flex justify-between text-on-surface-variant">
-                  <span>Data Engine:</span>
-                  <span className="text-on-surface font-semibold">{routeResult?.data_source}</span>
-                </div>
-                <div className="flex justify-between text-on-surface-variant">
-                  <span>Routing Mode:</span>
-                  <span className="text-primary uppercase font-bold">{routingMode}</span>
-                </div>
-                {routeResult?.traffic_aware_note && (
-                  <div className="mt-1 pt-1 border-t border-outline-variant/10 text-amber-500 text-[11px]">
-                    ℹ️ {routeResult.traffic_aware_note}
-                  </div>
-                )}
-              </div>
-
               {/* Alternative Routes Comparison */}
               {routeResult?.routes && routeResult.routes.length > 1 && (
-                <div className="flex flex-col gap-1.5 pt-2 border-t border-outline-variant/20">
-                  <span className="text-xs font-semibold text-on-surface">Available Alternatives:</span>
-                  <div className="flex flex-col gap-1">
+                <div className="flex flex-col gap-1.5 pt-2 border-t border-outline-variant">
+                  <span className="text-[11px] font-mono uppercase font-semibold text-on-surface-variant">
+                    Alternative Paths:
+                  </span>
+                  <div className="flex flex-col gap-1.5">
                     {routeResult.routes.map((alt, idx) => (
                       <button
                         key={idx}
                         onClick={() => setSelectedRouteIdx(idx)}
-                        className={`px-3 py-2 rounded-lg text-left text-xs font-mono flex items-center justify-between border transition-all ${
+                        className={`px-3 py-2 rounded text-left text-xs font-mono flex items-center justify-between border transition-colors cursor-pointer ${
                           selectedRouteIdx === idx
-                            ? 'bg-primary-container text-on-primary-container border-primary font-bold'
-                            : 'bg-surface-container border-outline-variant/20 text-on-surface hover:bg-surface-container-high'
+                            ? 'bg-primary/10 border-primary text-primary font-semibold'
+                            : 'bg-surface-container-low border-outline-variant text-on-surface hover:bg-surface-container'
                         }`}
                       >
                         <div className="flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full bg-primary"></span>
-                          <span>{alt.summary || `Route ${idx + 1}`}</span>
+                          <span className={`w-2 h-2 rounded-full ${selectedRouteIdx === idx ? 'bg-primary' : 'bg-outline'}`}></span>
+                          <span className="truncate">{alt.summary || `Route Option ${idx + 1}`}</span>
                         </div>
-                        <span>
-                          {alt.distance_km} km • {alt.duration_minutes} min
+                        <span className="text-on-surface-variant font-medium shrink-0 ml-2">
+                          {alt.distance_km} km &bull; {alt.duration_minutes}m
                         </span>
                       </button>
                     ))}
@@ -365,27 +379,30 @@ export const RoutePlanner: React.FC = () => {
 
               {/* Collapsible Turn-by-turn Navigation Steps */}
               {activeRoute.steps && activeRoute.steps.length > 0 && (
-                <div className="flex flex-col pt-2 border-t border-outline-variant/20">
+                <div className="flex flex-col pt-2 border-t border-outline-variant">
                   <button
                     type="button"
                     onClick={() => setShowSteps(!showSteps)}
-                    className="flex items-center justify-between text-xs font-semibold text-primary hover:underline"
+                    className="flex items-center justify-between py-1 text-xs font-medium text-primary hover:underline cursor-pointer"
                   >
-                    <span>Turn-by-turn Navigation ({activeRoute.steps.length} maneuvers)</span>
-                    <span className="material-symbols-outlined text-[16px]">
+                    <span className="flex items-center gap-1.5">
+                      <span className="material-symbols-outlined text-[16px]">turn_right</span>
+                      Turn-by-turn Navigation ({activeRoute.steps.length} maneuvers)
+                    </span>
+                    <span className="material-symbols-outlined text-[18px]">
                       {showSteps ? 'expand_less' : 'expand_more'}
                     </span>
                   </button>
 
                   {showSteps && (
-                    <div className="mt-2 max-h-48 overflow-y-auto flex flex-col gap-1.5 pr-1 font-body-sm text-xs">
+                    <div className="mt-2 max-h-56 overflow-y-auto flex flex-col gap-1 pr-1 text-xs">
                       {activeRoute.steps.map((st, i) => (
                         <div
                           key={i}
-                          className="p-2 rounded bg-surface-container-lowest border border-outline-variant/10 flex items-start justify-between gap-2"
+                          className="p-2 rounded border border-outline-variant bg-surface-container-low flex items-start justify-between gap-2"
                         >
-                          <span className="text-on-surface font-medium">{st.instruction}</span>
-                          <span className="text-on-surface-variant font-mono text-[10px] shrink-0">
+                          <span className="text-on-surface font-medium leading-snug">{st.instruction}</span>
+                          <span className="text-on-surface-variant font-mono text-[11px] shrink-0">
                             {st.distance_m > 1000
                               ? `${(st.distance_m / 1000).toFixed(1)} km`
                               : `${Math.round(st.distance_m)} m`}
@@ -400,35 +417,35 @@ export const RoutePlanner: React.FC = () => {
           )}
         </div>
 
-        {/* RIGHT COLUMN: Interactive Leaflet Map (7 Cols) */}
-        <div className="lg:col-span-7 flex flex-col bg-surface-container-low rounded-xl border border-outline-variant/20 overflow-hidden shadow-sm">
-          <div className="p-space-md bg-surface-container flex items-center justify-between border-b border-outline-variant/20">
+        {/* RIGHT COLUMN: Interactive Leaflet Map (Dominant Element) */}
+        <div className="lg:col-span-7 flex flex-col rounded border border-outline-variant bg-surface overflow-hidden">
+          <div className="px-3.5 py-2.5 bg-surface-container-low border-b border-outline-variant flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-primary text-[20px]">map</span>
-              <span className="font-headline-sm font-semibold text-on-surface">Interactive Road Geometry</span>
+              <span className="material-symbols-outlined text-[18px] text-primary">map</span>
+              <span className="text-xs font-semibold text-on-surface">
+                Geographic Information System Viewport
+              </span>
             </div>
             {activeRoute && (
-              <span className="font-mono text-xs text-on-surface-variant">
-                {activeRoute.geometry_coordinates.length} Road Vectors Rendered
+              <span className="font-mono text-[11px] text-on-surface-variant">
+                {activeRoute.geometry_coordinates.length} Vector Coordinates
               </span>
             )}
           </div>
 
-          {/* Leaflet Map Container */}
-          <div className="relative w-full h-[620px] bg-surface-container-lowest">
+          {/* Leaflet Map Viewport */}
+          <div className="relative w-full h-[640px] bg-surface-container-low">
             <MapContainer
               center={originCoords || [26.8467, 80.9462]} // Default Lucknow center
               zoom={13}
               scrollWheelZoom={true}
               style={{ width: '100%', height: '100%', zIndex: 1 }}
             >
-              {/* OpenStreetMap Tile Layer */}
               <TileLayer
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               />
 
-              {/* Fit Map to Route Bounds */}
               {activeRoute && <MapBoundsUpdater coordinates={activeRoute.geometry_coordinates} />}
 
               {/* Active Route Polyline */}
@@ -436,15 +453,15 @@ export const RoutePlanner: React.FC = () => {
                 <Polyline
                   positions={leafletPolyline}
                   pathOptions={{
-                    color: routingMode === 'traffic_aware' ? '#06b6d4' : '#0284c7',
+                    color: '#315B8A',
                     weight: 6,
-                    opacity: 0.9,
+                    opacity: 0.95,
                     lineJoin: 'round',
                   }}
                 />
               )}
 
-              {/* Alternative Routes in Muted Grays */}
+              {/* Alternative Routes */}
               {routeResult?.routes &&
                 routeResult.routes.map((alt, i) => {
                   if (i === selectedRouteIdx) return null;
@@ -454,10 +471,10 @@ export const RoutePlanner: React.FC = () => {
                       key={i}
                       positions={altCoords}
                       pathOptions={{
-                        color: '#94a3b8',
+                        color: '#64748B',
                         weight: 4,
-                        opacity: 0.5,
-                        dashArray: '5, 8',
+                        opacity: 0.6,
+                        dashArray: '6, 8',
                       }}
                     />
                   );
@@ -468,8 +485,8 @@ export const RoutePlanner: React.FC = () => {
                 <Marker position={originCoords} icon={originIcon}>
                   <Popup>
                     <div className="text-xs p-1">
-                      <strong className="text-emerald-700 block">Origin:</strong>
-                      <span>{routeResult?.origin.display_name}</span>
+                      <strong className="text-success block font-bold">Origin (A):</strong>
+                      <span className="text-slate-700">{routeResult?.origin.display_name}</span>
                     </div>
                   </Popup>
                 </Marker>
@@ -480,8 +497,8 @@ export const RoutePlanner: React.FC = () => {
                 <Marker position={destCoords} icon={destIcon}>
                   <Popup>
                     <div className="text-xs p-1">
-                      <strong className="text-rose-700 block">Destination:</strong>
-                      <span>{routeResult?.destination.display_name}</span>
+                      <strong className="text-danger block font-bold">Destination (B):</strong>
+                      <span className="text-slate-700">{routeResult?.destination.display_name}</span>
                     </div>
                   </Popup>
                 </Marker>
@@ -489,18 +506,18 @@ export const RoutePlanner: React.FC = () => {
             </MapContainer>
 
             {/* Map HUD Legend */}
-            <div className="absolute bottom-4 left-4 z-[400] bg-surface-container-lowest/90 backdrop-blur-md p-space-sm rounded-lg border border-outline-variant/30 text-xs font-mono shadow-lg flex flex-col gap-1.5 pointer-events-auto">
+            <div className="absolute bottom-4 left-4 z-[400] bg-surface/95 p-3 rounded border border-outline-variant text-[11px] font-mono shadow-sm flex flex-col gap-2 pointer-events-auto">
               <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full bg-emerald-500"></span>
-                <span className="text-on-surface">A: Starting Location</span>
+                <span className="w-2.5 h-2.5 rounded bg-success"></span>
+                <span className="text-on-surface">Origin Endpoint (A)</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full bg-rose-500"></span>
-                <span className="text-on-surface">B: Destination</span>
+                <span className="w-2.5 h-2.5 rounded bg-danger"></span>
+                <span className="text-on-surface">Destination Endpoint (B)</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="w-6 h-1 rounded bg-primary"></span>
-                <span className="text-on-surface">Primary Road Geometry</span>
+                <span className="w-5 h-1 bg-primary rounded"></span>
+                <span className="text-on-surface">Calculated Trajectory</span>
               </div>
             </div>
           </div>

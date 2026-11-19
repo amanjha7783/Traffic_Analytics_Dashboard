@@ -37,4 +37,6 @@ Thumbs.db
 # Local CCTV footage and generated exports
 backend/data/uploads/
 backend/data/exports/
+backend/data/studio/
 *.mp4
+

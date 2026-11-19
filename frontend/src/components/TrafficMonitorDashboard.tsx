@@ -153,7 +153,7 @@ export const TrafficMonitorDashboard: React.FC = () => {
         file_path: '', latitude: '', longitude: '', direction: '',
       });
       await refreshCameras();
-      setNotice('Camera configuration saved. RTSP credentials are read from the backend environment.');
+      setNotice('Camera configuration saved. RTSP credentials are read from backend environment.');
     } catch (error) {
       setNotice(errorText(error));
     }
@@ -234,44 +234,94 @@ export const TrafficMonitorDashboard: React.FC = () => {
   const counts = summary?.category_counts || session?.category_counts;
 
   return (
-    <div className="flex flex-col gap-space-lg">
-      <header className="rounded-xl border border-outline-variant/20 bg-surface-container-low p-space-lg">
-        <h1 className="font-headline-lg font-bold text-on-surface">Camera & Recorded Video Monitor</h1>
-        <p className="mt-1 text-sm text-on-surface-variant">
-          Only configured sources and detector results are shown. Physical speed and occupancy stay unavailable without calibration.
-        </p>
-        {notice && <p role="status" className="mt-3 rounded-lg border border-primary/30 bg-primary/10 p-3 text-sm text-on-surface">{notice}</p>}
-      </header>
-
-      <section className="rounded-xl border border-outline-variant/20 bg-surface-container-low p-space-lg">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-          <h2 className="font-headline-md font-semibold text-on-surface">Configured Cameras</h2>
-          <span className="text-xs text-on-surface-variant">{cameras.length} configured</span>
+    <div className="flex flex-col gap-4 w-full">
+      {/* Header Toolbar */}
+      <div className="p-3.5 rounded border border-outline-variant bg-surface flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded bg-surface-container-high border border-outline-variant flex items-center justify-center text-primary shrink-0">
+            <span className="material-symbols-outlined text-[18px]">videocam</span>
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-sm font-semibold text-on-surface">
+                Camera Streams & Vision Ingest Monitor
+              </h1>
+              <span className="px-1.5 py-0.2 rounded text-[10px] font-mono font-semibold bg-success/15 text-success border border-success/30">
+                SCADA CONTROL
+              </span>
+            </div>
+            <p className="text-xs text-on-surface-variant">
+              Configure CCTV RTSP nodes, link optical corridors, perform 4-point homography calibration, and run recorded inference jobs
+            </p>
+          </div>
         </div>
+
+        <div className="flex items-center gap-2 px-2.5 py-1 rounded border border-outline-variant bg-surface-container-low font-mono text-xs text-on-surface-variant">
+          <span className="w-2 h-2 rounded-full bg-success"></span>
+          <span>Online Nodes: {cameras.filter((c) => c.status === 'CONNECTED').length} / {cameras.length}</span>
+        </div>
+      </div>
+
+      {notice && (
+        <div role="status" className="p-3 rounded border border-primary/30 bg-primary/10 text-xs font-medium text-on-surface flex items-center gap-2">
+          <span className="material-symbols-outlined text-primary text-[18px]">info</span>
+          <span>{notice}</span>
+        </div>
+      )}
+
+      {/* Configured Cameras Stream Section */}
+      <section className="p-4 rounded border border-outline-variant bg-surface flex flex-col gap-3">
+        <div className="flex items-center justify-between border-b border-outline-variant pb-2">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold uppercase tracking-wider text-on-surface">
+              Configured CCTV Endpoints
+            </span>
+            <span className="text-[10px] font-mono px-1.5 py-0.2 rounded border border-outline-variant bg-surface-container-low text-on-surface-variant">
+              {cameras.length} Nodes Registered
+            </span>
+          </div>
+        </div>
+
         {cameras.length === 0 ? (
-          <p className="text-sm text-on-surface-variant">No cameras are configured. Add a camera below; no demo feeds are substituted.</p>
+          <div className="p-8 text-center rounded border border-outline-variant bg-surface-container-low flex flex-col items-center justify-center">
+            <span className="material-symbols-outlined text-[32px] text-on-surface-variant/40 mb-2">videocam_off</span>
+            <p className="text-xs font-semibold text-on-surface">No cameras configured in this node network.</p>
+            <p className="text-[11px] text-on-surface-variant mt-0.5">Register an RTSP camera node or local video file in the form below.</p>
+          </div>
         ) : (
-          <div className="grid gap-4 lg:grid-cols-2">
+          <div className="grid gap-3 lg:grid-cols-2">
             {cameras.map((camera) => {
               const metrics = cameraMetrics[camera.id] || {};
               const connected = camera.status === 'CONNECTED';
               const cameraCounts = metrics.category_counts as Record<string, number> | undefined;
               return (
-                <article key={camera.id} className="overflow-hidden rounded-xl border border-outline-variant/20 bg-surface-container">
-                  <div className="flex items-center justify-between gap-2 p-3">
-                    <div>
-                      <h3 className="font-semibold text-on-surface">{camera.name}</h3>
-                      <p className="text-xs text-on-surface-variant">{camera.code} · {camera.video_source} · {camera.direction || 'Direction not set'}</p>
+                <article key={camera.id} className="rounded border border-outline-variant bg-surface flex flex-col overflow-hidden">
+                  {/* Stream Card Header */}
+                  <div className="flex items-center justify-between gap-2 p-2.5 bg-surface-container-low border-b border-outline-variant">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className={`w-2 h-2 rounded-full shrink-0 ${connected ? 'bg-success' : 'bg-outline'}`}></span>
+                      <div className="min-w-0">
+                        <h3 className="text-xs font-semibold text-on-surface truncate">{camera.name}</h3>
+                        <p className="text-[10px] font-mono text-on-surface-variant truncate">
+                          {camera.code} &bull; {camera.video_source.toUpperCase()} &bull; {camera.direction || 'Direction unspecified'}
+                        </p>
+                      </div>
                     </div>
                     <button
                       onClick={() => void refreshAfterCameraAction(camera.id, !connected)}
                       disabled={busyCameraId === camera.id}
-                      className="rounded-lg bg-primary-container px-3 py-2 text-xs font-semibold text-on-primary-container disabled:opacity-50"
+                      className={`px-2.5 py-1 rounded text-xs font-medium transition-colors cursor-pointer disabled:opacity-50 ${
+                        connected
+                          ? 'bg-danger text-white hover:bg-danger/90'
+                          : 'bg-primary text-white hover:bg-primary/90'
+                      }`}
                     >
-                      {busyCameraId === camera.id ? 'Working…' : connected ? 'Stop' : 'Start'}
+                      {busyCameraId === camera.id ? 'Connecting…' : connected ? 'Stop Stream' : 'Start Stream'}
                     </button>
                   </div>
-                  <div className="relative flex aspect-video items-center justify-center bg-black">
+
+                  {/* Video Screen */}
+                  <div className="relative flex aspect-video items-center justify-center bg-black/90">
                     {connected ? (
                       <img
                         src={`${API_ORIGIN}/api/cameras/${encodeURIComponent(camera.id)}/stream`}
@@ -279,20 +329,45 @@ export const TrafficMonitorDashboard: React.FC = () => {
                         className="h-full w-full object-contain"
                       />
                     ) : (
-                      <span className="px-4 text-center text-sm text-slate-400">Camera disconnected — no live frames available</span>
+                      <div className="px-4 text-center text-on-surface-variant flex flex-col items-center gap-1.5">
+                        <span className="material-symbols-outlined text-[28px] opacity-40">videocam_off</span>
+                        <span className="text-xs font-medium">Camera stream offline &bull; No live frames</span>
+                      </div>
                     )}
-                    <span className={`absolute left-3 top-3 rounded px-2 py-1 text-xs ${connected ? 'bg-emerald-900/80 text-emerald-200' : 'bg-slate-900/80 text-slate-300'}`}>
+                    <span className={`absolute left-2.5 top-2.5 rounded px-2 py-0.5 text-[10px] font-mono font-medium uppercase border ${
+                      connected ? 'bg-surface/90 text-success border-success/40' : 'bg-surface/90 text-on-surface-variant border-outline-variant'
+                    }`}>
                       {camera.status}
                     </span>
                   </div>
-                  <div className="grid grid-cols-2 gap-3 p-3 text-xs text-on-surface-variant">
-                    <span>Source: {camera.video_source || 'not set'}</span>
-                    <span>Credentials: {camera.credentials_configured ? 'configured in backend' : 'not configured'}</span>
-                    <span>Detected tracks: {String(metrics.confirmed_unique_tracks ?? '--')}</span>
-                    <span>Data: {String(metrics.data_source ?? 'UNAVAILABLE')}</span>
-                    {cameraCounts && Object.entries(cameraCounts).map(([category, count]) => (
-                      <span key={category}>{category}: {count}</span>
-                    ))}
+
+                  {/* Telemetry Stats Strip */}
+                  <div className="p-2.5 grid grid-cols-2 gap-2 text-xs font-mono text-on-surface-variant bg-surface-container-low border-t border-outline-variant">
+                    <div>
+                      <span className="text-on-surface-variant/70 text-[10px]">Source: </span>
+                      <span className="text-on-surface font-medium">{camera.video_source}</span>
+                    </div>
+                    <div>
+                      <span className="text-on-surface-variant/70 text-[10px]">Tracks: </span>
+                      <span className="text-primary font-semibold">{String(metrics.confirmed_unique_tracks ?? '--')}</span>
+                    </div>
+                    <div>
+                      <span className="text-on-surface-variant/70 text-[10px]">Stream: </span>
+                      <span className="text-on-surface font-medium">{String(metrics.data_source ?? 'STANDBY')}</span>
+                    </div>
+                    <div>
+                      <span className="text-on-surface-variant/70 text-[10px]">Credentials: </span>
+                      <span className="text-on-surface font-medium">{camera.credentials_configured ? 'Env Set' : 'Unset'}</span>
+                    </div>
+                    {cameraCounts && Object.keys(cameraCounts).length > 0 && (
+                      <div className="col-span-2 pt-1.5 border-t border-outline-variant/50 flex flex-wrap gap-1.5">
+                        {Object.entries(cameraCounts).map(([cat, val]) => (
+                          <span key={cat} className="px-1.5 py-0.2 rounded border border-outline-variant bg-surface text-[10px] text-on-surface">
+                            {cat}: <strong>{val}</strong>
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </article>
               );
@@ -301,126 +376,194 @@ export const TrafficMonitorDashboard: React.FC = () => {
         )}
       </section>
 
-      <section className="grid gap-space-lg xl:grid-cols-2">
-        <form onSubmit={submitCamera} className="flex flex-col gap-3 rounded-xl border border-outline-variant/20 bg-surface-container-low p-space-lg">
-          <h2 className="font-headline-md font-semibold text-on-surface">Add Camera</h2>
-          <p className="text-xs text-on-surface-variant">RTSP URLs and passwords are never entered into or returned by the browser. Configure the normalized `CAMERA_RTSP_&lt;ID&gt;` variable in the backend environment.</p>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {(['id', 'name', 'junction', 'code'] as const).map((field) => (
-              <input key={field} required value={cameraForm[field]} placeholder={field.replace('_', ' ')}
-                onChange={(event) => setCameraForm({ ...cameraForm, [field]: event.target.value })}
-                className="rounded-lg border border-outline-variant/30 bg-surface-container px-3 py-2 text-sm text-on-surface" />
-            ))}
-            <select value={cameraForm.video_source} onChange={(event) => setCameraForm({ ...cameraForm, video_source: event.target.value })}
-              className="rounded-lg border border-outline-variant/30 bg-surface-container px-3 py-2 text-sm text-on-surface">
-              <option value="rtsp">RTSP (env credential)</option><option value="local">Local video</option><option value="webcam">Webcam</option>
-            </select>
-            {cameraForm.video_source !== 'rtsp' && <input required={cameraForm.video_source === 'local'} value={cameraForm.file_path} placeholder="Backend video path / webcam index"
-              onChange={(event) => setCameraForm({ ...cameraForm, file_path: event.target.value })}
-              className="rounded-lg border border-outline-variant/30 bg-surface-container px-3 py-2 text-sm text-on-surface" />}
-            <input value={cameraForm.latitude} placeholder="Latitude"
-              onChange={(event) => setCameraForm({ ...cameraForm, latitude: event.target.value })}
-              className="rounded-lg border border-outline-variant/30 bg-surface-container px-3 py-2 text-sm text-on-surface" />
-            <input value={cameraForm.longitude} placeholder="Longitude"
-              onChange={(event) => setCameraForm({ ...cameraForm, longitude: event.target.value })}
-              className="rounded-lg border border-outline-variant/30 bg-surface-container px-3 py-2 text-sm text-on-surface" />
-            <input value={cameraForm.direction} placeholder="Travel direction"
-              onChange={(event) => setCameraForm({ ...cameraForm, direction: event.target.value })}
-              className="rounded-lg border border-outline-variant/30 bg-surface-container px-3 py-2 text-sm text-on-surface" />
+      {/* Row 2: Add Camera & Create Corridor Forms */}
+      <section className="grid gap-4 xl:grid-cols-2 items-start">
+        {/* Add Camera Form */}
+        <form onSubmit={submitCamera} className="p-4 rounded border border-outline-variant bg-surface flex flex-col gap-3">
+          <div className="border-b border-outline-variant pb-2">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-on-surface">Register Camera Node</h2>
+            <p className="text-[11px] font-mono text-on-surface-variant mt-0.5">
+              RTSP URLs and credentials are read via backend environment (`CAMERA_RTSP_&lt;ID&gt;`).
+            </p>
           </div>
-          <button className="self-start rounded-lg bg-primary-container px-4 py-2 text-sm font-semibold text-on-primary-container">Save Camera</button>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {(['id', 'name', 'junction', 'code'] as const).map((field) => (
+              <div key={field} className="flex flex-col gap-1">
+                <label className="text-[10px] font-mono uppercase font-semibold text-on-surface-variant">{field.replace('_', ' ')}</label>
+                <input required value={cameraForm[field]} placeholder={`Enter ${field.replace('_', ' ')}`}
+                  onChange={(event) => setCameraForm({ ...cameraForm, [field]: event.target.value })}
+                  className="rounded border border-outline-variant bg-surface-container-low px-2.5 py-1.5 text-xs text-on-surface focus:outline-none focus:border-primary" />
+              </div>
+            ))}
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] font-mono uppercase font-semibold text-on-surface-variant">Protocol</label>
+              <select value={cameraForm.video_source} onChange={(event) => setCameraForm({ ...cameraForm, video_source: event.target.value })}
+                className="rounded border border-outline-variant bg-surface-container-low px-2.5 py-1.5 text-xs font-medium text-on-surface focus:outline-none focus:border-primary cursor-pointer">
+                <option value="rtsp">RTSP (backend env)</option>
+                <option value="local">Local Video File</option>
+                <option value="webcam">Integrated Webcam</option>
+              </select>
+            </div>
+            {cameraForm.video_source !== 'rtsp' && (
+              <div className="flex flex-col gap-1 sm:col-span-2">
+                <label className="text-[10px] font-mono uppercase font-semibold text-on-surface-variant">Path / Index</label>
+                <input required={cameraForm.video_source === 'local'} value={cameraForm.file_path} placeholder="Path to MP4 or device index (0)"
+                  onChange={(event) => setCameraForm({ ...cameraForm, file_path: event.target.value })}
+                  className="rounded border border-outline-variant bg-surface-container-low px-2.5 py-1.5 text-xs text-on-surface focus:outline-none focus:border-primary" />
+              </div>
+            )}
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] font-mono uppercase font-semibold text-on-surface-variant">Latitude</label>
+              <input value={cameraForm.latitude} placeholder="e.g. 26.8467"
+                onChange={(event) => setCameraForm({ ...cameraForm, latitude: event.target.value })}
+                className="rounded border border-outline-variant bg-surface-container-low px-2.5 py-1.5 text-xs text-on-surface focus:outline-none focus:border-primary" />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] font-mono uppercase font-semibold text-on-surface-variant">Longitude</label>
+              <input value={cameraForm.longitude} placeholder="e.g. 80.9462"
+                onChange={(event) => setCameraForm({ ...cameraForm, longitude: event.target.value })}
+                className="rounded border border-outline-variant bg-surface-container-low px-2.5 py-1.5 text-xs text-on-surface focus:outline-none focus:border-primary" />
+            </div>
+            <div className="flex flex-col gap-1 sm:col-span-2">
+              <label className="text-[10px] font-mono uppercase font-semibold text-on-surface-variant">Compass Direction</label>
+              <input value={cameraForm.direction} placeholder="e.g. Northbound / Eastbound"
+                onChange={(event) => setCameraForm({ ...cameraForm, direction: event.target.value })}
+                className="rounded border border-outline-variant bg-surface-container-low px-2.5 py-1.5 text-xs text-on-surface focus:outline-none focus:border-primary" />
+            </div>
+          </div>
+          <button className="mt-1 self-start rounded bg-primary px-3 py-1.5 text-xs font-medium text-white hover:bg-primary/90 transition-colors cursor-pointer">
+            Save Camera Node
+          </button>
         </form>
 
-        <form onSubmit={submitCorridor} className="flex flex-col gap-3 rounded-xl border border-outline-variant/20 bg-surface-container-low p-space-lg">
-          <h2 className="font-headline-md font-semibold text-on-surface">Two-Camera Corridor</h2>
-          <p className="text-xs text-on-surface-variant">Road geometry and distance come from the routing service using configured camera coordinates; missing coordinates or route data are errors, not estimates.</p>
-          <input required value={corridorForm.name} placeholder="Corridor name"
-            onChange={(event) => setCorridorForm({ ...corridorForm, name: event.target.value })}
-            className="rounded-lg border border-outline-variant/30 bg-surface-container px-3 py-2 text-sm text-on-surface" />
-          <div className="grid gap-3 sm:grid-cols-2">
-            <select required value={corridorForm.camera_a_id} onChange={(event) => setCorridorForm((current) => ({
-              ...current,
-              camera_a_id: event.target.value,
-              camera_b_id: current.camera_b_id === event.target.value ? '' : current.camera_b_id,
-            }))}
-              className="rounded-lg border border-outline-variant/30 bg-surface-container px-3 py-2 text-sm text-on-surface">
-              <option value="">Upstream camera</option>{cameras.map((camera) => <option key={camera.id} value={camera.id}>{camera.name}</option>)}
-            </select>
-            <select required value={corridorForm.camera_b_id} onChange={(event) => setCorridorForm({ ...corridorForm, camera_b_id: event.target.value })}
-              className="rounded-lg border border-outline-variant/30 bg-surface-container px-3 py-2 text-sm text-on-surface">
-              <option value="">Downstream camera</option>{cameras.filter((camera) => camera.id !== corridorForm.camera_a_id).map((camera) => <option key={camera.id} value={camera.id}>{camera.name}</option>)}
-            </select>
-            <input value={corridorForm.road_width_m} placeholder="Measured road width (m)"
-              onChange={(event) => setCorridorForm({ ...corridorForm, road_width_m: event.target.value })}
-              className="rounded-lg border border-outline-variant/30 bg-surface-container px-3 py-2 text-sm text-on-surface" />
-            <input value={corridorForm.num_lanes} placeholder="Lane count"
-              onChange={(event) => setCorridorForm({ ...corridorForm, num_lanes: event.target.value })}
-              className="rounded-lg border border-outline-variant/30 bg-surface-container px-3 py-2 text-sm text-on-surface" />
-            <input value={corridorForm.speed_limit_kmh} placeholder="Speed limit (km/h)"
-              onChange={(event) => setCorridorForm({ ...corridorForm, speed_limit_kmh: event.target.value })}
-              className="rounded-lg border border-outline-variant/30 bg-surface-container px-3 py-2 text-sm text-on-surface" />
-            <input value={corridorForm.direction} placeholder="Direction"
-              onChange={(event) => setCorridorForm({ ...corridorForm, direction: event.target.value })}
-              className="rounded-lg border border-outline-variant/30 bg-surface-container px-3 py-2 text-sm text-on-surface" />
-          </div>
-          <button disabled={cameras.length < 2} className="self-start rounded-lg bg-primary-container px-4 py-2 text-sm font-semibold text-on-primary-container disabled:opacity-50">Create Corridor</button>
-        </form>
-        <div className="flex flex-col gap-3 rounded-xl border border-outline-variant/20 bg-surface-container-low p-space-lg">
-          {corridors.map((corridor) => (
-            <button type="button" key={String(corridor.id)} onClick={() => {
-              setCorridorDetail(null);
-              setSelectedCorridorId(String(corridor.id));
-            }}
-              className={`rounded-lg p-3 text-left text-xs ${selectedCorridorId === corridor.id ? 'bg-primary/10 text-on-surface' : 'bg-surface-container text-on-surface-variant'}`}>
-              {String(corridor.name)} · {Number(corridor.road_length_m).toFixed(0)} m · {String(corridor.data_source)}
+        {/* Two-Camera Corridor Form & Calibration */}
+        <div className="flex flex-col gap-4">
+          <form onSubmit={submitCorridor} className="p-4 rounded border border-outline-variant bg-surface flex flex-col gap-3">
+            <div className="border-b border-outline-variant pb-2">
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-on-surface">Link Two-Camera Corridor</h2>
+              <p className="text-[11px] font-mono text-on-surface-variant mt-0.5">
+                Calculates highway geometry and distance between two surveyed camera locations.
+              </p>
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] font-mono uppercase font-semibold text-on-surface-variant">Corridor Label</label>
+              <input required value={corridorForm.name} placeholder="e.g. MG Road Arterial Corridor"
+                onChange={(event) => setCorridorForm({ ...corridorForm, name: event.target.value })}
+                className="rounded border border-outline-variant bg-surface-container-low px-2.5 py-1.5 text-xs text-on-surface focus:outline-none focus:border-primary" />
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] font-mono uppercase font-semibold text-on-surface-variant">Upstream Node</label>
+                <select required value={corridorForm.camera_a_id} onChange={(event) => setCorridorForm((current) => ({
+                  ...current,
+                  camera_a_id: event.target.value,
+                  camera_b_id: current.camera_b_id === event.target.value ? '' : current.camera_b_id,
+                }))}
+                  className="rounded border border-outline-variant bg-surface-container-low px-2.5 py-1.5 text-xs text-on-surface focus:outline-none focus:border-primary cursor-pointer font-medium">
+                  <option value="">Select Upstream</option>
+                  {cameras.map((camera) => <option key={camera.id} value={camera.id}>{camera.name}</option>)}
+                </select>
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] font-mono uppercase font-semibold text-on-surface-variant">Downstream Node</label>
+                <select required value={corridorForm.camera_b_id} onChange={(event) => setCorridorForm({ ...corridorForm, camera_b_id: event.target.value })}
+                  className="rounded border border-outline-variant bg-surface-container-low px-2.5 py-1.5 text-xs text-on-surface focus:outline-none focus:border-primary cursor-pointer font-medium">
+                  <option value="">Select Downstream</option>
+                  {cameras.filter((camera) => camera.id !== corridorForm.camera_a_id).map((camera) => <option key={camera.id} value={camera.id}>{camera.name}</option>)}
+                </select>
+              </div>
+              <input value={corridorForm.road_width_m} placeholder="Road width (m)"
+                onChange={(event) => setCorridorForm({ ...corridorForm, road_width_m: event.target.value })}
+                className="rounded border border-outline-variant bg-surface-container-low px-2.5 py-1.5 text-xs text-on-surface focus:outline-none focus:border-primary" />
+              <input value={corridorForm.num_lanes} placeholder="Lane count"
+                onChange={(event) => setCorridorForm({ ...corridorForm, num_lanes: event.target.value })}
+                className="rounded border border-outline-variant bg-surface-container-low px-2.5 py-1.5 text-xs text-on-surface focus:outline-none focus:border-primary" />
+            </div>
+            <button disabled={cameras.length < 2} className="self-start rounded bg-primary px-3 py-1.5 text-xs font-medium text-white hover:bg-primary/90 transition-colors cursor-pointer disabled:opacity-50">
+              Create Corridor
             </button>
-          ))}
-          {corridorDetail && (
-            <form onSubmit={submitCalibration} className="mt-2 flex flex-col gap-2 rounded-lg border border-outline-variant/20 bg-surface-container p-3">
-              <h3 className="text-sm font-semibold text-on-surface">Camera Ground-Plane Calibration</h3>
-              <p className="text-xs text-on-surface-variant">Enter at least four paired image-pixel and measured road-plane coordinates. Use the same point order for both arrays.</p>
-              <select required value={calibrationCameraId} onChange={(event) => setCalibrationCameraId(event.target.value)}
-                className="rounded-lg border border-outline-variant/30 bg-surface-container-low px-3 py-2 text-sm text-on-surface">
-                <option value="">Select corridor camera</option>
-                {[String(corridorDetail.camera_a_id), String(corridorDetail.camera_b_id)].map((id) => {
-                  const camera = cameras.find((item) => item.id === id);
-                  return <option key={id} value={id}>{camera?.name || id}</option>;
-                })}
-              </select>
-              <textarea required value={imagePointsText} onChange={(event) => setImagePointsText(event.target.value)}
-                placeholder="Image points: [[x1,y1],[x2,y2],[x3,y3],[x4,y4]]"
-                className="min-h-20 rounded-lg border border-outline-variant/30 bg-surface-container-low px-3 py-2 font-mono text-xs text-on-surface" />
-              <textarea required value={groundPointsText} onChange={(event) => setGroundPointsText(event.target.value)}
-                placeholder="Ground points in meters: [[x1,y1],[x2,y2],[x3,y3],[x4,y4]]"
-                className="min-h-20 rounded-lg border border-outline-variant/30 bg-surface-container-low px-3 py-2 font-mono text-xs text-on-surface" />
-              <button className="self-start rounded-lg bg-primary-container px-3 py-2 text-xs font-semibold text-on-primary-container">Save Calibration</button>
-              {Array.isArray(corridorDetail.calibrations) && (corridorDetail.calibrations as Array<Record<string, unknown>>).map((calibration) => (
-                <p key={String(calibration.camera_id)} className="text-xs text-on-surface-variant">
-                  {String(calibration.camera_id)}: {calibration.is_calibrated ? 'calibrated' : 'not calibrated'} · RMSE {String(calibration.reprojection_rmse_m ?? 'unavailable')} m
-                </p>
-              ))}
-            </form>
+          </form>
+
+          {/* Active Corridors list & Calibration */}
+          {corridors.length > 0 && (
+            <div className="p-4 rounded border border-outline-variant bg-surface flex flex-col gap-2.5">
+              <span className="text-[11px] font-mono uppercase font-semibold text-on-surface-variant">Select Corridor to Calibrate:</span>
+              <div className="flex flex-col gap-1.5">
+                {corridors.map((corridor) => (
+                  <button type="button" key={String(corridor.id)} onClick={() => {
+                    setCorridorDetail(null);
+                    setSelectedCorridorId(String(corridor.id));
+                  }}
+                    className={`rounded p-2.5 text-left text-xs font-mono flex items-center justify-between border transition-colors cursor-pointer ${
+                      selectedCorridorId === corridor.id 
+                        ? 'bg-primary/10 border-primary text-primary font-semibold' 
+                        : 'bg-surface-container-low border-outline-variant text-on-surface hover:bg-surface-container'
+                    }`}>
+                    <span>{String(corridor.name)}</span>
+                    <span className="text-on-surface-variant">{Number(corridor.road_length_m).toFixed(0)}m &bull; {String(corridor.data_source)}</span>
+                  </button>
+                ))}
+              </div>
+
+              {corridorDetail && (
+                <form onSubmit={submitCalibration} className="mt-2 flex flex-col gap-2.5 rounded border border-outline-variant bg-surface-container-low p-3">
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-on-surface flex items-center gap-1.5">
+                    <span className="material-symbols-outlined text-primary text-[16px]">square_foot</span>
+                    Camera Ground-Plane Homography Calibration
+                  </h3>
+                  <p className="text-[10px] text-on-surface-variant font-mono">
+                    Input 4+ corresponding points [[x,y],...] between 2D pixel coordinates and surveyed road coordinates.
+                  </p>
+                  <select required value={calibrationCameraId} onChange={(event) => setCalibrationCameraId(event.target.value)}
+                    className="rounded border border-outline-variant bg-surface px-2.5 py-1.5 text-xs text-on-surface font-medium">
+                    <option value="">Select Target Camera</option>
+                    {[String(corridorDetail.camera_a_id), String(corridorDetail.camera_b_id)].map((id) => {
+                      const camera = cameras.find((item) => item.id === id);
+                      return <option key={id} value={id}>{camera?.name || id}</option>;
+                    })}
+                  </select>
+                  <textarea required value={imagePointsText} onChange={(event) => setImagePointsText(event.target.value)}
+                    placeholder="Image pixel points: [[x1,y1],[x2,y2],[x3,y3],[x4,y4]]"
+                    className="min-h-16 rounded border border-outline-variant bg-surface p-2 font-mono text-[11px] text-on-surface" />
+                  <textarea required value={groundPointsText} onChange={(event) => setGroundPointsText(event.target.value)}
+                    placeholder="Ground coordinates (meters): [[x1,y1],[x2,y2],[x3,y3],[x4,y4]]"
+                    className="min-h-16 rounded border border-outline-variant bg-surface p-2 font-mono text-[11px] text-on-surface" />
+                  <button className="self-start rounded bg-primary px-3 py-1.5 text-xs font-medium text-white hover:bg-primary/90 transition-colors cursor-pointer">
+                    Commit Calibration Matrix
+                  </button>
+                </form>
+              )}
+            </div>
           )}
         </div>
       </section>
 
-      <section className="grid gap-space-lg xl:grid-cols-2">
-        <form onSubmit={beginVideoProcessing} className="flex flex-col gap-4 rounded-xl border border-outline-variant/20 bg-surface-container-low p-space-lg">
-          <div>
-            <h2 className="font-headline-md font-semibold text-on-surface">Process Recorded Video</h2>
-            <p className="mt-1 text-xs text-on-surface-variant">Counts are confirmed unique tracks. Standard COCO weights cannot distinguish three-wheelers; they remain unavailable unless custom weights and a class map are supplied.</p>
+      {/* Row 3: Recorded Video Processing & Execution */}
+      <section className="grid gap-4 xl:grid-cols-2 items-start">
+        {/* Upload & Configure Processing */}
+        <form onSubmit={beginVideoProcessing} className="p-4 rounded border border-outline-variant bg-surface flex flex-col gap-3">
+          <div className="border-b border-outline-variant pb-2">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-on-surface">Offline Video Inference & Tracking</h2>
+            <p className="text-[11px] font-mono text-on-surface-variant mt-0.5">
+              Upload CCTV footage, establish detection threshold, and draw virtual counting tripwire
+            </p>
           </div>
-          <input type="file" accept="video/mp4,video/quicktime,video/x-msvideo,video/x-matroska"
-            onChange={(event) => {
-              setFile(event.target.files?.[0] || null);
-              setCountingLine([]);
-              setVideoDimensions(null);
-            }}
-            className="text-sm text-on-surface-variant file:mr-3 file:rounded-lg file:border-0 file:bg-surface-container-high file:px-3 file:py-2 file:text-on-surface" />
+
+          <div className="flex flex-col gap-1">
+            <label className="text-[10px] font-mono uppercase font-semibold text-on-surface-variant">Select Video File</label>
+            <input type="file" accept="video/mp4,video/quicktime,video/x-msvideo,video/x-matroska"
+              onChange={(event) => {
+                setFile(event.target.files?.[0] || null);
+                setCountingLine([]);
+                setVideoDimensions(null);
+              }}
+              className="text-xs text-on-surface-variant file:mr-3 file:rounded file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-white file:cursor-pointer" />
+          </div>
+
           {previewUrl && (
             <div
               onClick={selectLinePoint}
-              className="relative w-full overflow-hidden bg-black"
+              className="relative w-full overflow-hidden rounded bg-black border border-outline-variant cursor-crosshair"
               style={{ aspectRatio: videoDimensions ? `${videoDimensions[0]} / ${videoDimensions[1]}` : '16 / 9' }}
             >
               <video ref={previewRef} src={previewUrl} controls onLoadedMetadata={(event) => {
@@ -429,76 +572,130 @@ export const TrafficMonitorDashboard: React.FC = () => {
               }} className="h-full w-full object-fill" />
               {videoDimensions && countingLine.length > 0 && (
                 <svg className="pointer-events-none absolute inset-0 h-full w-full" viewBox={`0 0 ${videoDimensions[0]} ${videoDimensions[1]}`}>
-                  {countingLine.length === 2 && <line x1={countingLine[0][0]} y1={countingLine[0][1]} x2={countingLine[1][0]} y2={countingLine[1][1]} stroke="#facc15" strokeWidth="5" />}
-                  {countingLine.map(([x, y], index) => <circle key={index} cx={x} cy={y} r="12" fill="#facc15" />)}
+                  {countingLine.length === 2 && <line x1={countingLine[0][0]} y1={countingLine[0][1]} x2={countingLine[1][0]} y2={countingLine[1][1]} stroke="#C58A24" strokeWidth="4" />}
+                  {countingLine.map(([x, y], index) => <circle key={index} cx={x} cy={y} r="8" fill="#C58A24" stroke="#ffffff" strokeWidth="1.5" />)}
                 </svg>
               )}
-              <span className="absolute left-2 top-2 rounded bg-black/70 px-2 py-1 text-xs text-white">Click two points to define a counting line (optional)</span>
+              <span className="absolute left-2 top-2 rounded bg-black/80 px-2 py-0.5 text-[10px] font-mono text-warning border border-warning/30">
+                Click two points to define virtual tripwire counting line
+              </span>
             </div>
           )}
-          <div className="grid gap-3 sm:grid-cols-2">
-            <select value={selectedCameraId} onChange={(event) => setSelectedCameraId(event.target.value)}
-              className="rounded-lg border border-outline-variant/30 bg-surface-container px-3 py-2 text-sm text-on-surface">
-              <option value="">No camera association</option>{cameras.map((camera) => <option key={camera.id} value={camera.id}>{camera.name}</option>)}
-            </select>
-            <label className="flex items-center gap-2 text-sm text-on-surface-variant">
-              Confidence: {confidence.toFixed(2)}
-              <input type="range" min="0.05" max="0.95" step="0.05" value={confidence} onChange={(event) => setConfidence(Number(event.target.value))} />
-            </label>
+
+          <div className="grid gap-2 sm:grid-cols-2">
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] font-mono uppercase font-semibold text-on-surface-variant">Camera Association</label>
+              <select value={selectedCameraId} onChange={(event) => setSelectedCameraId(event.target.value)}
+                className="rounded border border-outline-variant bg-surface-container-low px-2.5 py-1.5 text-xs text-on-surface font-medium focus:outline-none focus:border-primary">
+                <option value="">No camera node association</option>
+                {cameras.map((camera) => <option key={camera.id} value={camera.id}>{camera.name}</option>)}
+              </select>
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] font-mono uppercase font-semibold text-on-surface-variant">
+                Detection Threshold: {confidence.toFixed(2)}
+              </label>
+              <input type="range" min="0.05" max="0.95" step="0.05" value={confidence} onChange={(event) => setConfidence(Number(event.target.value))}
+                className="mt-2 w-full accent-primary cursor-pointer" />
+            </div>
           </div>
-          <div className="flex flex-wrap gap-2">
+
+          <div className="flex flex-wrap gap-2 pt-1">
             <button disabled={!file || !videoDimensions || (session !== null && !terminalStates.has(session.status))}
-              className="rounded-lg bg-primary-container px-4 py-2 text-sm font-semibold text-on-primary-container disabled:opacity-50">
-              Start Processing
+              className="rounded bg-primary px-4 py-2 text-xs font-medium text-white hover:bg-primary/90 transition-colors disabled:opacity-50 cursor-pointer flex items-center gap-1.5">
+              <span className="material-symbols-outlined text-[16px]">play_arrow</span>
+              <span>Execute Inference Processing</span>
             </button>
             {session && !terminalStates.has(session.status) && (
               <>
                 {session.status === 'PAUSED'
-                  ? <button type="button" onClick={() => void action('resume')} className="rounded-lg bg-surface-container-high px-3 py-2 text-sm text-on-surface">Resume</button>
-                  : <button type="button" onClick={() => void action('pause')} className="rounded-lg bg-surface-container-high px-3 py-2 text-sm text-on-surface">Pause</button>}
-                <button type="button" onClick={() => void action('stop')} className="rounded-lg bg-error-container px-3 py-2 text-sm text-on-error-container">Stop</button>
+                  ? <button type="button" onClick={() => void action('resume')} className="rounded border border-outline-variant bg-surface-container-low px-3 py-2 text-xs font-medium text-on-surface hover:bg-surface-container cursor-pointer">Resume</button>
+                  : <button type="button" onClick={() => void action('pause')} className="rounded border border-outline-variant bg-surface-container-low px-3 py-2 text-xs font-medium text-on-surface hover:bg-surface-container cursor-pointer">Pause</button>}
+                <button type="button" onClick={() => void action('stop')} className="rounded bg-danger px-3 py-2 text-xs font-medium text-white hover:bg-danger/90 cursor-pointer">Stop</button>
               </>
             )}
           </div>
         </form>
 
-        <div className="flex flex-col gap-4 rounded-xl border border-outline-variant/20 bg-surface-container-low p-space-lg">
-          <div className="flex items-start justify-between gap-3">
+        {/* Processing Execution Result Panel */}
+        <div className="p-4 rounded border border-outline-variant bg-surface flex flex-col gap-3">
+          <div className="flex items-center justify-between border-b border-outline-variant pb-2">
             <div>
-              <h2 className="font-headline-md font-semibold text-on-surface">Processing Result</h2>
-              <p className="text-xs text-on-surface-variant">{session ? `${session.status} · ${session.session_id}` : 'No video session selected'}</p>
-            </div>
-            {session && <span className="text-sm font-mono text-primary">{Number(session.progress_percent || 0).toFixed(1)}%</span>}
-          </div>
-          {session && (
-            <>
-              <progress max={100} value={session.progress_percent || 0} className="w-full" />
-              <p className="text-xs text-on-surface-variant">
-                Frame {session.current_frame || 0} / {session.total_frames || 0} · {session.raw_frame_detections || 0} raw detections · {session.confirmed_unique_tracks || 0} confirmed unique tracks · {session.counted_crossings || 0} line crossings
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-on-surface">Inference Telemetry Feed</h2>
+              <p className="text-[11px] font-mono text-on-surface-variant mt-0.5">
+                {session ? `${session.status} &bull; Job ID: ${session.session_id}` : 'No active or historical session loaded'}
               </p>
-              {session.error_message && <p className="rounded-lg bg-error-container p-3 text-sm text-on-error-container">{session.error_message}</p>}
+            </div>
+            {session && (
+              <span className="text-sm font-semibold font-mono text-primary px-2 py-0.5 rounded border border-primary/20 bg-primary/10">
+                {Number(session.progress_percent || 0).toFixed(1)}%
+              </span>
+            )}
+          </div>
+
+          {session ? (
+            <div className="flex flex-col gap-3">
+              {/* Progress bar */}
+              <div className="w-full bg-surface-container-low h-2 rounded overflow-hidden border border-outline-variant">
+                <div 
+                  className="bg-primary h-full transition-all duration-200"
+                  style={{ width: `${Math.min(100, Math.max(0, session.progress_percent || 0))}%` }}
+                />
+              </div>
+
+              <div className="p-2.5 rounded border border-outline-variant bg-surface-container-low text-[11px] font-mono text-on-surface-variant flex flex-wrap gap-3">
+                <span>Frame: <strong className="text-on-surface">{session.current_frame || 0} / {session.total_frames || 0}</strong></span>
+                <span>Detections: <strong className="text-primary">{session.raw_frame_detections || 0}</strong></span>
+                <span>Unique Tracks: <strong className="text-success">{session.confirmed_unique_tracks || 0}</strong></span>
+                <span>Tripwire Crossings: <strong className="text-warning">{session.counted_crossings || 0}</strong></span>
+              </div>
+
+              {session.error_message && (
+                <div className="p-2.5 rounded border border-danger/40 bg-surface text-xs font-medium text-danger flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-[16px]">error</span>
+                  <span>{session.error_message}</span>
+                </div>
+              )}
+
               {counts && (
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                  {Object.entries(counts).map(([category, count]) => (
-                    <div key={category} className="rounded-lg bg-surface-container p-3">
-                      <p className="text-[10px] text-on-surface-variant">{category}</p>
-                      <p className="text-lg font-semibold text-on-surface">{count}</p>
-                    </div>
+                <div>
+                  <span className="text-[10px] font-mono font-semibold uppercase text-on-surface-variant block mb-1.5">Classified Tracks:</span>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                    {Object.entries(counts).map(([category, count]) => (
+                      <div key={category} className="p-2 rounded border border-outline-variant bg-surface-container-low flex flex-col justify-between">
+                        <span className="text-[10px] font-mono text-on-surface-variant uppercase">{category}</span>
+                        <span className="font-mono text-xs font-semibold text-on-surface mt-1">{count}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {session.exports?.annotated_video && (
+                <div className="mt-1">
+                  <span className="text-[10px] font-mono font-semibold uppercase text-on-surface-variant block mb-1">Annotated Result Video:</span>
+                  <video controls src={`${API_ORIGIN}${session.exports.annotated_video}`} className="max-h-64 w-full rounded bg-black border border-outline-variant" />
+                </div>
+              )}
+
+              {session.exports && (
+                <div className="flex flex-wrap gap-1.5 pt-2 border-t border-outline-variant">
+                  {Object.entries(session.exports).map(([name, path]) => (
+                    <a key={name} href={`${API_ORIGIN}${path}`} download
+                      className="px-2.5 py-1 rounded border border-outline-variant bg-surface-container-low text-[11px] font-mono text-primary hover:underline">
+                      Download {name.replaceAll('_', ' ')}
+                    </a>
                   ))}
                 </div>
               )}
-              {summary && <p className="text-xs text-on-surface-variant">
-                {summary.data_source} · motor vehicles: {summary.total_motor_vehicles ?? '--'} · including bicycles: {summary.total_vehicles_including_bicycle ?? '--'}
-                {summary.is_partial ? ' · partial processing' : ''}
-              </p>}
-              {session.exports && Object.entries(session.exports).map(([name, path]) => (
-                <a key={name} href={`${API_ORIGIN}${path}`} className="text-sm text-primary underline">{name.replaceAll('_', ' ')}</a>
-              ))}
-              {session.exports?.annotated_video && (
-                <video controls src={`${API_ORIGIN}${session.exports.annotated_video}`} className="mt-2 max-h-80 w-full rounded-lg bg-black" />
-              )}
-              {summary?.speed_note && <p className="text-xs text-amber-300">{summary.speed_note}</p>}
-            </>
+            </div>
+          ) : (
+            <div className="py-12 text-center flex flex-col items-center justify-center">
+              <span className="material-symbols-outlined text-[32px] text-on-surface-variant/40 mb-2">analytics</span>
+              <p className="text-xs font-semibold text-on-surface">No video inference session running.</p>
+              <p className="text-[11px] text-on-surface-variant mt-0.5">Select an MP4 file on the left to start tracking objects.</p>
+            </div>
           )}
         </div>
       </section>

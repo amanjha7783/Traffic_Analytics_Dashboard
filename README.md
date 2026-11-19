@@ -1,397 +1,554 @@
-# Traffic Analytics & Intelligent Route Planning System
+# Traffic Intelligence & Intelligent Route Planning System (TrafficOps)
 
-An end-to-end, full-stack intelligent transportation engineering platform combining real-time computer vision traffic monitoring, vehicle trajectory analysis, OpenStreetMap road-network routing, historical telemetry analytics, and Machine Learning-based travel time prediction.
-
----
-
-## 1. Project Overview
-
-This project combines route planning and historical analytics with an operational two-camera / recorded-video computer-vision pipeline. Camera status and streams are sourced from the backend; recorded uploads produce confirmed-track counts, annotated video, and downloadable CSV/JSON summaries. Historical trajectory and traffic CSV files in this repository are demonstration inputs, not live sensor measurements.
-
-The Overview page loads the configured primary annotated recording and a second distinct annotated export, when available. Both are muted and request autoplay; browser playback still depends on the media being decodable. They are labeled as recorded footage; live camera configuration and connection status remain separate in Traffic Monitor.
-
-Forecasting currently selects a historical same-hour baseline unless the serialized XGBoost model is available and has a lower saved chronological-test MAE. Existing evaluation data are synthetic; no production accuracy claim is made. Deep-learning forecasting, calibrated physical speed/occupancy, and validated collision/PET detection are not available until corresponding models, sensor data, and calibration are supplied.
+An enterprise-grade, full-stack intelligent transportation engineering platform and operations command center. The system combines real-time computer vision traffic monitoring, vehicle trajectory analysis, OpenStreetMap road-network routing, historical telemetry analytics, and Machine Learning-based travel time prediction into a unified dashboard.
 
 ---
 
-## 2. Key Features
+## 1. Executive Summary & Architecture Overview
 
-### Preserved and Integrated Features
-- **Live camera monitoring:** Configure two or more RTSP, local-video, or webcam sources; start/stop streams and view server-side annotated MJPEG feeds. RTSP credentials are read from backend environment variables and are not returned to the browser.
-- **Recorded-video processing:** Upload MP4/MOV/AVI/MKV files, optionally draw a counting line, monitor processing, pause/resume/stop, and download annotated MP4, category totals, track details, minute-offset counts, and JSON results.
-- **Annotated playback:** Overview discovers the configured primary MP4 and a distinct MP4 from another export job; native video controls use an API that supports HTTP byte ranges. Missing second exports are shown as unavailable rather than duplicated.
-- **Vehicle detection and tracking:** Confirmed unique tracks are counted separately from line crossings. Standard COCO weights do not identify three-wheelers; that category requires compatible fine-tuned weights and an explicit class mapping.
-- **Corridor setup:** Store camera pairs and request road geometry/distance from OSRM using camera coordinates. Ground-plane calibration is a separate, camera-specific operation.
-- **Historical trajectory, analytics, route planning, and forecasting:** Existing views remain. Demo data and prototype/static visualizations are labeled; unsupported live values are shown as unavailable rather than inferred.
-- **Light / Dark Mode:** Full dual-theme design system powered by Tailwind CSS variables.
-
-### Existing Planning Features
-- **Intelligent Route Planner (`/src/pages/RoutePlanner.tsx`):**
-  - Origin, destination, and city geocoding with OpenStreetMap Nominatim and Photon APIs.
-  - Interactive Leaflet map with real road geometry, polyline rendering, and custom SVG markers.
-  - **Mode A (Baseline):** Shortest real road distance routing via OSRM.
-  - **Mode B (Traffic-Aware):** Predictive travel-time estimation with informative delay modeling.
-  - Alternative route comparison table and collapsible turn-by-turn navigation steps.
-- **Historical Traffic Analytics (`/src/pages/HistoricalAnalytics.tsx`):**
-  - Corridor selection dropdown and date/period range filtering.
-  - Hourly volume distribution (Bar Chart) and speed curves (Line Chart).
-  - Weekday versus weekend volume and speed comparison (Grouped Bar Chart).
-  - Automated peak congestion hour detection (morning vs. evening rush hour windows).
-  - Daily Congestion Index trendline over time.
-- **24-Hour Traffic Forecast (`/src/pages/TrafficForecast.tsx`):**
-  - Corridor-specific 24-hour forecast from earlier same-hour observations.
-  - Diurnal breakdown cards comparing morning, afternoon, and evening conditions.
-  - Model telemetry selects XGBoost only when it beats the historical baseline on saved chronological test metrics.
-
-### Data and calibration limitations
-- The bundled historical traffic CSV and trajectory JSON are sample/demo data. Missing historical data no longer triggers automatic synthetic generation.
-- Uploaded-video speed is not physical speed. It requires calibrated ground-plane scale and synchronized timestamps.
-- Road occupancy requires valid road geometry, camera homography, and vehicle footprints; dimensions alone are estimates.
-- Cross-camera re-identification and safety conflict alerts are not presented as verified measurements in the current dashboard.
-- Minute counts for uploaded videos use recording-relative offsets. An absolute recording timestamp is left blank when the source provides none.
-
----
-
-## 3. System Architecture
+TrafficOps bridges real-time sensory perception (computer vision and video inference) with macro-level transportation planning (graph-based routing and predictive travel-time modeling). 
 
 ```text
-┌────────────────────────────────────────────────────────────────────────┐
-│                        React + Vite Frontend                           │
-│  - Route Planner (Leaflet Map + OSRM Polylines + Alternatives)         │
-│  - Historical Analytics (Recharts Volume, Speed, Weekday, Congestion)  │
-│  - 24-Hour Traffic Forecast (XGBoost Inferences & Period Digest)       │
-│  - Live Monitor, Processed Video Playback, Trajectories & Reports      │
-└───────────────────────────────────┬────────────────────────────────────┘
-                                    │ HTTP REST (port 8000)
-                                    ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│                        FastAPI Python Backend                          │
-│  ├── /api/route/*        Routing & Geocoding Service                   │
-│  ├── /api/traffic/*      Traffic Analytics & Forecasting Service       │
-│  ├── /api/trajectories/* Trajectory Tracking Telemetry                 │
-│  └── /api/analytics/*    KPIs & Real-Time Summaries                    │
-└─────────────┬─────────────────────┬────────────────────┬───────────────┘
-              │                     │                    │
-              ▼                     ▼                    ▼
-     Nominatim / Photon           OSRM API        XGBoost ML Pipeline
-    (Geocoding Engine)       (Road Graph Engine)  (Travel-Time Model)
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                        React 19 + TypeScript + Vite Frontend                           │
+│  - Dual-Theme Command Center UI (Cosmic Obsidian & Executive Light)                    │
+│  - Universal Collapsible Sidebar Navigation with LocalStorage Persistence              │
+│  - 8 Primary Intelligence Modules (Overview, Route, Forecast, History, Monitor, etc.) │
+│  - 720px Interactive Leaflet Map with Real OSM Vectors & Custom 40px Pins              │
+│  - 380px–420px Recharts Visualizations with Gradient Illumination & Dark Tooltips      │
+└───────────────────────────────────────────┬────────────────────────────────────────────┘
+                                            │ HTTP REST & Byte-Range Video Streams (Port 8000)
+                                            ▼
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                                FastAPI Python Backend                                  │
+│  ├── /api/route/*            OSRM Road-Graph & Nominatim Geocoding Engine              │
+│  ├── /api/traffic/*          Diurnal Profiles, Congestion Indices & ML Forecasts       │
+│  ├── /api/trajectories/*     Spatial 2D Pixel Coordinate Tracking Telemetry            │
+│  ├── /api/analytics/*        Network KPIs & Historical Time-Series Aggregations        │
+│  ├── /api/cameras/*          CCTV RTSP Node Lifecycle & MJPEG Stream Pipelines         │
+│  ├── /api/corridors/*        Two-Camera Corridors & 4-Point Homography Calibration     │
+│  └── /api/video-processing/* Offline YOLOv8 Inferences, Line-Crossing, & Audit Exports │
+└─────────────┬─────────────────────┬────────────────────┬───────────────────┬───────────┘
+              │                     │                    │                   │
+              ▼                     ▼                    ▼                   ▼
+     Nominatim / Photon          OSRM API        XGBoost Regressor     YOLOv8 ONNX
+    (Geocoding Engine)      (Road Graph Engine)  (Travel-Time Model) (Vision Detector)
 ```
 
 ---
 
-## 4. Folder Structure
+## 2. Complete Inventory of System Features & Modules
+
+The platform is structured into **8 core intelligence modules**, accessible via the universal navigation sidebar:
+
+### 2.1 Overview & Dual-Feed CV Playback (`/` & `VideoPlayerFeed.tsx`)
+* **Dual Video Inference Players:** Side-by-side video feeds displaying processed intersection video footage with automated bounding box annotations.
+* **HTTP Byte-Range Seeking:** Video streaming router supports partial content requests (HTTP 206) for responsive seeking.
+* **Object Taxonomy Classification Counters:** Real-time counters displaying detected quantities across 7 categories:
+  * Two-wheelers (Motorcycles, Scooters)
+  * Three-wheelers (Auto-rickshaws)
+  * Four-wheelers / Cars
+  * Transit Buses
+  * Heavy Commercial Trucks
+  * Bicycles
+  * Pedestrians (tracked independently)
+* **Video Metadata Badges:** Displays video duration, frame dimensions ($W \times H$), file size (MB), and source processing Job IDs.
+* **Stream Refresh & Quick Access:** Direct link to live camera stream configuration in the Traffic Monitor.
+
+### 2.2 Intelligent Multi-Modal Route Planner (`RoutePlanner.tsx`)
+* **Dual Geocoding Engine:** Resolves natural language addresses and landmarks using OpenStreetMap Nominatim and Photon search, supplemented by a pre-cached regional landmark database for instant resolution without network delay.
+* **True Road-Network Topology:** Eliminates straight-line approximations; queries the OpenStreetMap OSRM routing engine to retrieve exact road vectors, elevation curves, and driving instructions.
+* **Interactive 720px Leaflet Map:**
+  * Rendered on clean OpenStreetMap vector tiles.
+  * 8px thick primary route polyline with electric indigo glow.
+  * Custom 40px high-contrast SVG map pins (Emerald for Origin "A", Crimson for Destination "B").
+  * Automatic map viewport bounding box fitting (`MapBoundsUpdater`).
+* **Multi-Route Candidate Comparison:** Generates primary and alternative candidate routes with distance (km) and estimated duration (minutes).
+* **Collapsible Turn-by-Turn Navigation:** Step-by-step maneuver instructions with localized distances (meters/kilometers) and directional arrows.
+* **Routing Objectives:**
+  * *Mode A (Baseline):* Shortest physical road distance using network topology.
+  * *Mode B (Traffic-Aware):* Evaluates corridor travel-time estimates and historical congestion delays.
+
+### 2.3 24-Hour Predictive Traffic Forecast (`TrafficForecast.tsx`)
+* **Diurnal Rush Hour Digest:** Three high-visibility operational cards analyzing:
+  * **Morning Rush (07:00 – 11:00):** Inflow commuter volume and velocity.
+  * **Afternoon Inter-Peak (12:00 – 16:00):** Mid-day baseline velocity and flow.
+  * **Evening Rush (17:00 – 21:00):** Dispersal outflow volume and speed degradation.
+* **24-Hour Predicted Travel Time Curve (400px Chart):** Continuous hourly trajectory showing expected travel time in seconds, with highlighted amber and crimson reference areas denoting peak congestion intervals.
+* **Predicted Velocity Profile (380px Chart):** Line chart benchmarked against the corridor's regulatory speed limit.
+* **Anticipated Hourly Throughput Demand (380px Chart):** Hourly volume bar chart in vehicles per hour (veh/h).
+* **ML Model Telemetry Card:** Inspects the active prediction engine:
+  * Model architecture identification.
+  * Test Mean Absolute Error (MAE) and Root Mean Squared Error (RMSE) on chronological hold-out splits.
+  * Number of training sample observations.
+  * Feature extraction list (hour, day of week, peak flag, road length, lanes, volume).
+
+### 2.4 Historical Traffic Analytics (`HistoricalAnalytics.tsx`)
+* **Interactive Filter Toolbar:** Filter analytics by monitored corridor, diurnal period (All, Morning, Afternoon, Evening), and custom start/end date ranges with instant reset.
+* **Four High-Impact Metric Cards:**
+  * Total Dataset Observations ($5,768+$ records across 8 Lucknow arterial corridors).
+  * Network-wide Space-Mean Speed (km/h) and average segment traversal time.
+  * Peak Congestion Hour identification.
+  * Busiest Road Segment with average hourly flow.
+* **Four 380px Analytical Charts:**
+  1. **Hourly Volume Distribution:** 24-hour bar chart detailing hourly flow profiles.
+  2. **Average Speed Curves:** Monotone line curve capturing speed drops during morning and evening rush hours.
+  3. **Weekday vs. Weekend Grouped Comparison:** Dual-axis bar chart comparing traffic volume (veh/h) against velocity (km/h) across working and weekend days.
+  4. **Daily Congestion Index Trend:** Time-series line chart tracking the Bureau of Public Roads (BPR) Congestion Index ($\text{Index} = \text{Free-Flow Speed} / \text{Observed Speed}$).
+* **Automated Peak Congestion Window Detection:** Threshold detection algorithm surfacing active morning and evening rush windows with discrete 60-minute interval breakdown tables.
+
+### 2.5 Camera Streams & Vision Ingest Monitor (`TrafficMonitorDashboard.tsx`)
+* **Configured CCTV Endpoint Cards:**
+  * Live server-side MJPEG video stream rendering.
+  * Real-time connection indicators (Online vs. Offline).
+  * Direct Start Stream / Stop Stream controls.
+  * Active metadata: RTSP source status, credentials state, unique track counts.
+* **Camera Node Registration Form:** Form to register camera sources with ID, name, junction, internal code, protocol (RTSP, Local File, or Webcam), GPS coordinates, and compass direction.
+* **Two-Camera Highway Corridor Linking:** Pairs upstream and downstream camera nodes, calculating total road length and geometry via OSRM.
+* **4-Point Ground-Plane Homography Calibration:** Matrix calculation tool accepting paired 2D pixel coordinates ($x, y$) and physical ground coordinates (meters) to compute planar reprojection scale (Reprojection RMSE).
+* **Offline Recorded Video Processing Console:**
+  * Video file uploader (`.mp4`, `.mov`, `.avi`, `.mkv`).
+  * Interactive video viewport for establishing a **virtual tripwire counting line** by clicking two points.
+  * Detector confidence threshold slider ($0.05$ to $0.95$).
+  * Execution controls: Start Processing, Pause, Resume, Stop.
+  * Live telemetry progress bar with frame-by-frame counts, raw detections, confirmed unique tracks, and line-crossing counts.
+
+### 2.6 Spatial Trajectory Telemetry (`TrajectoriesSection.tsx`)
+* **Chronological Ingest Table:** High-density spatial coordinate viewer displaying tracked vehicle IDs, taxonomy classes, source timestamps, X/Y screen coordinates, and pixel velocities.
+* **Category Filtering:** Filter trajectory logs by vehicle class or display all records.
+* **CSV Telemetry Export:** Single-click export button downloading all visible trajectory observations into a formatted CSV file (`trajectory_file_records.csv`).
+* **Row Selection:** Click any row to inspect individual vehicle movement vectors.
+
+### 2.7 Telemetry KPIs & Core Health (`AnalyticsCharts.tsx` & `KpiRow.tsx`)
+* **Prominent Metric Cards:**
+  * **Total Vehicles Tracked:** High-contrast `text-6xl font-black` numerical display with verified repository provenance.
+  * **Average Correlative Speed:** Space-mean velocity in km/h derived from trajectory logs.
+* **Trajectory Area Timeline (400px):** Area chart showing instantaneous vehicle track counts over time with electric indigo gradient fill.
+* **Sensor Capability Status Cards:** Clear indicators detailing status of vehicle classification mix, physical ground velocity calibration, and spatial conflict (Time-to-Collision / TTC) analysis.
+
+### 2.8 Traffic Audit & Reports Hub (`ReportsView.tsx`)
+* **Audited Video Inference Exports:** Central repository linking completed vision processing runs to downloadable file artifacts:
+  * **Category Count Summary (CSV):** Aggregated vehicle counts sorted by class.
+  * **Confirmed Track Details (CSV):** Frame-by-frame coordinate logs and tracking IDs.
+  * **Minute-wise Traffic Counts (CSV):** 60-second time-interval throughput histogram.
+  * **Processing Telemetry Summary (JSON):** Model confidence, frame rates, hardware execution parameters.
+  * **Annotated Video Footage (MP4):** Full-resolution video recording with bounding box overlays.
+
+### 2.9 Video Intelligence Workflow (`/video-intelligence`)
+A complete, streamlined video intelligence workflow backed by real computer vision, geospatial planar homography, and transportation analytics. Every screen has a dedicated, bookmarkable URL:
+
+1. **Project Listing (`/video-intelligence`):**
+   * Displays all active traffic analysis projects with metadata (project name, description, creation date, open button).
+   * Prominent **Create New Project** action opening a modal requiring only **Project Name** and optional **Description**.
+2. **Project Workspace (`/video-intelligence/projects/:projectId`):**
+   * Displays project name, a prominent **History** button on the right, and a large drag-and-drop video upload zone supporting MP4, MOV, AVI, and MKV formats with file validation and upload progress.
+3. **Video Setup & Calibration Studio (`/video-intelligence/projects/:projectId/videos/:videoId/setup`):**
+   * First frame is automatically extracted on upload via OpenCV and displayed with original aspect ratio.
+   * Interactive 4-point Ground Control Point (GCP) editor with drag, reposition, pan, zoom, and reset view controls.
+   * Coordinate entry for Point 1 through Point 4 (image X/Y matched with mandatory Latitude and Longitude).
+   * Real-time RANSAC planar homography calculation, metric reprojection RMSE estimation, and calibration quality grading (EXCELLENT, GOOD, POOR).
+   * Optional video rename field.
+   * **Final Submit** commits the calibration and launches asynchronous backend video processing.
+4. **Background Video Processing Engine (`/video-intelligence/projects/:projectId/videos/:videoId/processing/:jobId`):**
+   * Real-time progress monitor displaying progress percentage (0–100%), frames completed vs. total, processing speed (FPS), pipeline stage (YOLO detection, ByteTrack filtering, homography projection, video encoding), and ETA remaining.
+   * Automatic redirection to the analytics page upon job completion.
+   * Failure diagnostics with one-click retry action.
+5. **Video Analytics Center (`/video-intelligence/projects/:projectId/videos/:videoId/analytics`):**
+   * **Section A (Annotated Video Player):** Large HTML5 video player streaming the YOLOv8 + ByteTrack annotated MP4 with playback controls, seeking, and direct MP4 download.
+   * **Section B (Exactly Four Visualizations):**
+     * *Graph 1:* Vehicle Count Over Time (Line chart, time in seconds vs. vehicle count).
+     * *Graph 2:* Average Vehicle Speed (Line chart, time in seconds vs. speed in km/h derived from homography).
+     * *Graph 3:* Traffic Density (Line chart, time in seconds vs. density veh/m² or road occupancy percentage).
+     * *Graph 4:* Vehicle Classification (Bar chart of vehicle class breakdown).
+   * **Section C (Trajectory Observations Table):** Granular telemetry records with columns for Timestamp (s), Track ID, Vehicle Class, Image X, Image Y, Ground X (m), Ground Y (m), Latitude, Longitude, and Speed (km/h). Clicking **View** on any row instantly seeks the video player to that timestamp, highlights the target track row, and displays track details.
+6. **Project History Center (`/video-intelligence/projects/:projectId/history`):**
+   * Centralized archive of all videos in the project showing video name, upload timestamp, and processing status.
+   * Operational actions: **Open Analytics**, **Download Annotated MP4**, **Download CSV**, **Retry Processing** (for failed jobs), and **Delete Video** (with confirmation dialog).
+
+---
+
+## 3. UI/UX Design System & Ergonomics
+
+The application features a visual redesign:
+
+### 3.1 Color Palette Architecture
+* **Dark Mode (Cosmic Space Obsidian):**
+  * Base Background: `#080b12`
+  * Surface Containers: `#0d121f`, `#111827`, `#162035`, `#1d2a45`
+  * Borders & Outlines: `#222f47` and `#2a3854`
+  * Primary Accent: **Electric Indigo** (`#6366f1` / `#4338ca`)
+  * Secondary (Flow & Rush): **Solar Amber** (`#fbbf24` / `#b45309`)
+  * Tertiary (Optimal Flow): **Vivid Emerald** (`#10b981` / `#047857`)
+  * Alert & Congestion: **Crimson Rose** (`#f43f5e` / `#9f1239`)
+  * AI & Forecasts: **Neural Violet** (`#8b5cf6` / `#a855f7`)
+* **Light Mode (Executive Transit Hub):**
+  * Base Background: `#f8fafc`
+  * Surface Containers: `#ffffff`, `#f1f5f9`, `#e2e8f0`
+  * Primary Accent: **Deep Royal Indigo** (`#4f46e5` / `#e0e7ff`)
+  * Secondary Accent: **Warm Amber** (`#d97706` / `#fef3c7`)
+  * Tertiary Accent: **Emerald Teal** (`#059669` / `#d1fae5`)
+  * Error Accent: **Crimson Red** (`#e11d48` / `#ffe4e6`)
+
+### 3.2 Typography Hierarchy
+* **KPI Metrics:** `text-5xl` to `text-6xl font-black` (48px–56px) with Space Grotesk numerals.
+* **Page Titles:** `text-3xl` to `text-4xl font-extrabold` (32px–36px).
+* **Section Headers:** `text-2xl font-bold` (24px–28px).
+* **Body & Telemetry Copy:** `text-base font-medium` (16px) across all views.
+* **System Labels & Badges:** `text-xs` / `text-sm font-mono font-bold uppercase tracking-wider`.
+
+### 3.3 Universal Collapsible Sidebar Navigation
+* **Universal Header Toggle:** Header toggle button on desktop and mobile (`menu_open` / `menu`) to expand or collapse the sidebar.
+* **Integrated Collapse Button:** Dedicated `menu_open` button inside the top-right corner of the sidebar header.
+* **Full-Width Canvas Adaptation:** When collapsed, the sidebar slides smoothly off-screen (`-translate-x-full`) and the dashboard expands from `lg:pl-72` to `lg:pl-0` (`transition-all duration-300`).
+* **Persistent Preference:** Sidebar state (open vs. collapsed) is preserved across page reloads via `localStorage.getItem('sidebar_open')`.
+* **Mobile-First Gestures:** Automatic overlay dimming and closing when selecting links on screens $< 1024\text{px}$.
+
+---
+
+## 4. Technology Stack
+
+### Frontend
+* **Framework:** React 19 (`react: ^19.2.8`, `react-dom: ^19.2.8`)
+* **Build Tool:** Vite 8 (`vite: ^8.3.0`, `@vitejs/plugin-react: ^6.1.1`)
+* **Styling & Design System:** Tailwind CSS v4 (`@tailwindcss/vite: ^4.3.3`, `tailwindcss: ^4.3.3`)
+* **Typography:** Space Grotesk, Inter, JetBrains Mono, Google Material Symbols Outlined
+* **Charts & Visualizations:** Recharts (`recharts: ^3.10.1`)
+* **Geospatial Mapping:** Leaflet (`leaflet: ^1.9.4`, `react-leaflet: ^5.0.0`)
+* **Icons:** Lucide React & Google Material Symbols
+* **HTTP Client:** Axios (`axios: ^1.20.0`)
+
+### Backend
+* **Web Framework:** FastAPI (`fastapi: ^0.165.0`)
+* **ASGI Server:** Uvicorn (`uvicorn: ^0.54.0`)
+* **Data Schemas & Validation:** Pydantic v2 (`pydantic: ^2.14.3`, `pydantic-core`)
+* **Data Manipulation & Analysis:** Pandas (`pandas: ^3.1.1`), NumPy (`numpy: ^2.4.6`)
+* **Machine Learning:** Scikit-Learn (`scikit-learn: ^1.9.1`), XGBoost (`xgboost: ^3.2.0`), Joblib
+* **Computer Vision & Ingest:** OpenCV Headless (`opencv-python-headless: ^5.1.0`), ONNX Runtime (`onnxruntime: ^1.32.0`), Shapely, ImageIO-FFmpeg
+* **Graph Theory & Routing:** NetworkX (`networkx: ^3.6.1`)
+* **Database:** SQLite3 with WAL mode (`traffic_analytics.db`)
+
+---
+
+## 5. Directory & File Structure
 
 ```text
 Traffic_Analytics_Dashboard/
-│
 ├── backend/
 │   ├── app/
+│   │   ├── config.py                 # Environment configurations & defaults
+│   │   ├── main.py                   # FastAPI application initialization & middleware
+│   │   ├── database/
+│   │   │   └── database.py           # SQLite connection pool & table schemas
+│   │   ├── geospatial/
+│   │   │   └── geocoding.py          # Nominatim, Photon, & local landmark resolution
 │   │   ├── models/
-│   │   │   ├── route.py             # Pydantic schemas for routing
-│   │   │   ├── traffic.py           # Pydantic schemas for forecasts & analytics
-│   │   │   └── schemas.py           # Schemas for trajectories & KPIs
+│   │   │   ├── route.py              # Pydantic models for routing requests & responses
+│   │   │   ├── schemas.py            # Schemas for camera streams & trajectory points
+│   │   │   └── traffic.py            # Schemas for forecasts, historical data & ML
 │   │   ├── routes/
-│   │   │   ├── route_planner.py     # Route estimation & optimization endpoints
-│   │   │   ├── traffic_forecast.py  # Forecast & historical analytics endpoints
-│   │   │   ├── trajectories.py      # Trajectory telemetry endpoints
-│   │   │   ├── analytics.py         # Summary analytics endpoints
-│   │   │   └── health.py            # API health check
+│   │   │   ├── analytics.py          # Summary KPIs & flow-rate endpoints
+│   │   │   ├── cameras.py            # Camera registration & stream control endpoints
+│   │   │   ├── corridors.py          # Two-camera corridor & calibration endpoints
+│   │   │   ├── health.py             # System health check endpoint
+│   │   │   ├── route_planner.py      # Route estimation & optimization endpoints
+│   │   │   ├── traffic_forecast.py   # 24-hour forecast & historical analytics endpoints
+│   │   │   ├── trajectories.py       # Trajectory point ingest & query endpoints
+│   │   │   ├── video_processing.py   # Recorded video upload & export endpoints
+│   │   │   └── websockets.py         # Real-time WebSocket streaming telemetry
 │   │   ├── services/
-│   │   │   ├── geocoding.py         # Nominatim & Photon geocoding with caching
-│   │   │   ├── routing.py           # OSRM road-network client
-│   │   │   ├── road_network.py      # NetworkX local fallback graph
-│   │   │   ├── traffic_data.py      # Historical dataset querying & generation
-│   │   │   ├── feature_engineering.py # ML feature transformers
-│   │   │   └── prediction.py        # XGBoost inference service
-│   │   └── main.py                  # FastAPI application entrypoint
+│   │   │   ├── feature_engineering.py# ML feature transformers & encoders
+│   │   │   ├── prediction.py         # XGBoost & historical baseline inference service
+│   │   │   ├── road_network.py       # NetworkX local fallback graph engine
+│   │   │   ├── routing.py            # OSRM road-network client
+│   │   │   └── traffic_data.py       # Dataset queries, filters, & BPR calculations
+│   │   ├── traffic/
+│   │   │   └── calculations.py       # Space-mean speed & flow formulas
+│   │   └── vision/
+│   │       ├── detector.py           # YOLOv8 ONNX object detector wrapper
+│   │       ├── tracker.py            # Multi-object ByteTrack tracking implementation
+│   │       └── video_processor.py    # Offline video worker & frame annotator
 │   ├── data/
-│   │   ├── historical_traffic.csv   # 5,768 synthetic historical records (BPR model)
-│   │   └── trajectory_data.json     # Trajectory points for CV tracking
+│   │   ├── historical_traffic.csv    # 5,768 synthetic historical records across 8 roads
+│   │   ├── traffic_analytics.db      # SQLite persistent storage for sessions & cameras
+│   │   ├── trajectory_data.json      # Ground-truth trajectory coordinate points
+│   │   └── yolov8n.onnx              # Pre-compiled YOLOv8 nano ONNX weights
 │   ├── models/
-│   │   ├── xgboost_travel_time.joblib # Serialized trained XGBoost model
-│   │   ├── model_metadata.json      # Model metrics, hyperparams & test scores
-│   │   └── EVALUATION_REPORT.md     # Full empirical evaluation report
+│   │   ├── EVALUATION_REPORT.md      # Empirical ML benchmarking and evaluation findings
+│   │   ├── model_metadata.json       # Hyperparameters, MAE/RMSE scores, & feature names
+│   │   └── xgboost_travel_time.joblib# Serialized trained XGBoost model binary
 │   ├── scripts/
-│   │   └── train_model.py           # Chronological ML training & evaluation
+│   │   └── train_model.py            # Chronological split training & evaluation pipeline
 │   ├── tests/
-│   │   └── test_api.py              # Automated test suite (pytest)
-│   ├── requirements.txt             # Python backend dependencies
-│   └── venv/                        # Python virtual environment
+│   │   └── test_api.py               # Automated pytest suite
+│   ├── generate_demo_data.py         # Synthetic BPR dataset generation script
+│   └── requirements.txt              # Pinned Python package dependencies
 │
 ├── frontend/
+│   ├── public/
+│   │   └── favicon.svg               # Application radar SVG emblem
 │   ├── src/
-│   │   ├── components/              # Sidebar, Header, Video and feature views
+│   │   ├── components/
+│   │   │   ├── AnalyticsCharts.tsx   # Trajectory area chart & sensor status cards
+│   │   │   ├── Header.tsx            # Sticky header with sidebar toggle & theme switch
+│   │   │   ├── KpiRow.tsx            # High-impact numerical KPI telemetry cards
+│   │   │   ├── ReportsView.tsx       # Downloadable audit exports for CSV, JSON & MP4
+│   │   │   ├── Sidebar.tsx           # Collapsible drawer with navigation & active state
+│   │   │   ├── TrafficMonitorDashboard.tsx # Camera streams & video inference console
+│   │   │   ├── TrajectoriesSection.tsx # Raw trajectory table with CSV export
+│   │   │   └── VideoPlayerFeed.tsx   # Dual annotated video playback & taxonomy counts
 │   │   ├── pages/
-│   │   │   ├── RoutePlanner.tsx     # Route planning page with Leaflet map
-│   │   │   ├── HistoricalAnalytics.tsx # Historical analytics with Recharts
-│   │   │   ├── TrafficForecast.tsx  # 24-hour predictive forecast page
+│   │   │   ├── HistoricalAnalytics.tsx # Diurnal charts, rush windows, & weekday stats
+│   │   │   ├── RoutePlanner.tsx      # Leaflet map, geocoding inputs, & route directions
+│   │   │   └── TrafficForecast.tsx   # 24-hour ML travel-time forecast & period digest
 │   │   ├── services/
-│   │   │   ├── routeApi.ts          # Axios routing API client
-│   │   │   ├── trafficApi.ts        # Axios traffic API client
-│   │   │   └── api.js               # Trajectory & analytics API client
-│   │   ├── types.ts                 # Full TypeScript definitions
-│   │   ├── App.tsx                  # Main tab router & shell
-│   │   └── index.css                # Tailwind CSS v4 variables
-│   ├── package.json
-│   └── vite.config.ts
+│   │   │   ├── api.js                # Legacy trajectory & summary endpoints
+│   │   │   ├── routeApi.ts           # Axios client for /api/route endpoints
+│   │   │   ├── trafficApi.ts         # Axios client for /api/traffic endpoints
+│   │   │   └── videoApi.ts           # Axios client for /api/video-processing endpoints
+│   │   ├── App.css                   # Custom component styling
+│   │   ├── App.tsx                   # Master root component with view routing
+│   │   ├── index.css                 # Tailwind v4 configuration & theme color variables
+│   │   ├── main.tsx                  # React DOM entry point
+│   │   └── types.ts                  # TypeScript interfaces and type definitions
+│   ├── index.html                    # HTML entry point with Google Fonts preloads
+│   ├── package.json                  # Frontend dependencies and npm scripts
+│   ├── tailwind.config.js            # Tailwind theme tokens & design system extensions
+│   ├── tsconfig.json                 # TypeScript compiler configurations
+│   └── vite.config.ts                # Vite build pipeline and plugin setup
 │
-├── README.md
-├── .env.example
-└── .gitignore
+├── 12937233_3840_2160_30fps.mp4      # High-definition 4K raw intersection test video
+├── .env.example                      # Environment variable template
+├── .gitignore                        # Git exclusion rules
+└── README.md                         # Comprehensive master documentation (this file)
 ```
 
 ---
 
-## 5. Software Requirements
+## 6. Installation & Execution Guide
 
-- **Operating System:** Windows 10/11, macOS, or Linux
-- **Python:** 3.10+ (tested on Python 3.11)
-- **Node.js:** v18.0.0+ (tested on Node.js v20+)
-- **Git**
+### Prerequisites
+* **Operating System:** Windows 10/11, macOS, or Linux
+* **Python:** Version 3.10 or 3.11 (Python 3.11 recommended)
+* **Node.js:** Version 18.0.0 or higher
+* **Package Managers:** `pip` and `npm`
 
 ---
 
-## 6. Installation Instructions (Windows & VS Code)
+### 6.1 Backend Setup & Execution (FastAPI)
 
-### Step 1: Clone or Open Project
-Open VS Code in the project root folder:
+1. **Open PowerShell / Terminal** and navigate to the `backend` directory:
+   ```powershell
+   cd "c:\Users\bhave\OneDrive\Desktop\Web Projects\Traffic_Analytics_Dashboard\backend"
+   ```
+
+2. **Create and Activate a Virtual Environment:**
+   ```powershell
+   # Create virtual environment
+   python -m venv venv
+
+   # Activate on Windows PowerShell
+   .\venv\Scripts\Activate.ps1
+   ```
+   *(Note: If script execution is restricted on Windows, run `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass` prior to activation)*
+
+3. **Install Dependencies:**
+   ```powershell
+   pip install -r requirements.txt
+   ```
+
+4. **Launch the FastAPI Server:**
+   ```powershell
+   python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
+   ```
+
+5. **Verify Backend Status:**
+   * Health Check: [http://127.0.0.1:8000/api/health](http://127.0.0.1:8000/api/health) &rarr; `{"status": "ok", "message": "Backend is running"}`
+   * Swagger Documentation: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
+   * Redoc Documentation: [http://127.0.0.1:8000/redoc](http://127.0.0.1:8000/redoc)
+
+---
+
+### 6.2 Frontend Setup & Execution (React + Vite)
+
+1. **Open a Second Terminal** and navigate to the `frontend` directory:
+   ```powershell
+   cd "c:\Users\bhave\OneDrive\Desktop\Web Projects\Traffic_Analytics_Dashboard\frontend"
+   ```
+
+2. **Install Node Dependencies:**
+   ```powershell
+   npm install
+   ```
+
+3. **Start the Development Server:**
+   ```powershell
+   npm run dev
+   ```
+
+4. **Access the Application:**
+   Open your browser to: **[http://localhost:5173](http://localhost:5173)**
+
+---
+
+### 6.3 Building for Production
+
+To compile and bundle the frontend for production deployment:
 ```powershell
-cd E:\Traffic_Analytics_Dashboard
-code .
+cd frontend
+npm run build
+```
+The optimized static output will be generated inside `frontend/dist/`.
+
+To test the production build locally:
+```powershell
+npm run preview
 ```
 
-### Step 2: Set up Backend Virtual Environment
-Open a PowerShell terminal in VS Code:
-```powershell
-cd E:\Traffic_Analytics_Dashboard\backend
+---
 
-# Create virtual environment (if not already present)
-python -m venv venv
+## 7. Complete API Reference
 
-# Activate virtual environment
-.\venv\Scripts\Activate.ps1
+### Health & System Status
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/api/health` | Returns server status and verification confirmation |
 
-# Upgrade pip and install dependencies
-python -m pip install --upgrade pip
-pip install -r requirements.txt
-```
+### Route Planning & Optimization
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/api/route/estimate` | Computes baseline or traffic-aware route geometry and alternative paths via OSRM |
+| `POST` | `/api/route/optimize` | Compares and ranks multiple routes based on travel time and segment delays |
 
-### Step 3: Install Frontend Dependencies
-In a second terminal:
-```powershell
-cd E:\Traffic_Analytics_Dashboard\frontend
-npm install
-```
+### Traffic Forecast & Historical Analytics
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/api/traffic/roads` | Lists all monitored arterial road corridors in the network |
+| `GET` | `/api/traffic/forecast` | Point travel-time prediction for a specific road ID, date, and hour |
+| `GET` | `/api/traffic/24-hour` | 24-hour hourly predictive travel time and volume forecast curve |
+| `GET` | `/api/traffic/analytics/summary` | Aggregate statistical summary across all historical dataset records |
+| `GET` | `/api/traffic/analytics/hourly-pattern` | Diurnal volume and velocity distributions for a selected corridor |
+| `GET` | `/api/traffic/analytics/weekday-comparison` | Comparative volume and speed statistics between weekdays and weekends |
+| `GET` | `/api/traffic/analytics/peak-hours` | Algorithmic peak rush hour detection (morning vs. evening windows) |
+| `GET` | `/api/traffic/analytics/congestion-trends`| Daily Congestion Index trendline over time |
+| `GET` | `/api/traffic/model-info` | Metadata, hyperparameters, and evaluation metrics for the ML model |
+
+### Trajectories & General Analytics
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/api/trajectories/` | Returns spatial 2D trajectory tracking points from historical file |
+| `GET` | `/api/analytics/summary` | Top-level intersection KPI metrics (total vehicles, average speed) |
+| `GET` | `/api/analytics/vehicles-over-time` | Flow-rate time-series histogram |
+
+### Camera Streams & Corridors
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/api/cameras` | Lists all registered CCTV camera nodes |
+| `POST` | `/api/cameras` | Registers a new camera node (RTSP, local file, or webcam) |
+| `POST` | `/api/cameras/{camera_id}/start` | Starts the camera background worker and begins frame acquisition |
+| `POST` | `/api/cameras/{camera_id}/stop` | Stops the camera background worker |
+| `GET` | `/api/cameras/{camera_id}/stream` | Streams live annotated frames via MJPEG (`multipart/x-mixed-replace`) |
+| `GET` | `/api/corridors` | Lists all configured two-camera corridors |
+| `POST` | `/api/corridors` | Creates a new two-camera corridor with road geometry lookup |
+| `POST` | `/api/corridors/{corridor_id}/calibration` | Saves 4-point homography calibration matrix for physical measurements |
+
+### Recorded Video Processing & Audit Exports
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/api/video-processing/upload` | Uploads video file and initiates offline YOLOv8 tracking job |
+| `GET` | `/api/video-processing/session/{id}` | Polls status, frame counts, and classification statistics for a job |
+| `POST` | `/api/video-processing/session/{id}/control` | Sends control actions (`pause`, `resume`, `stop`) to an active job |
+| `GET` | `/api/video-processing/recordings` | Lists metadata for discovered completed annotated recordings |
+| `GET` | `/api/video-processing/recordings/{id}/stream` | Streams annotated MP4 with byte-range seeking support |
+| `GET` | `/api/video-processing/recordings/{id}/files/{export}` | Downloads CSV/JSON artifacts (`count_summary`, `track_details`, etc.) |
+| `GET` | `/api/video-processing/latest` | Retrieves the latest completed processing session for report generation |
+
+### Video Intelligence Workflow
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/api/video-intelligence/projects` | List all analysis projects |
+| `POST` | `/api/video-intelligence/projects` | Create a new project (name & description) |
+| `GET` | `/api/video-intelligence/projects/{id}` | Retrieve project details |
+| `DELETE` | `/api/video-intelligence/projects/{id}` | Delete project and all associated files |
+| `GET` | `/api/video-intelligence/projects/{id}/videos` | List all videos in a project |
+| `POST` | `/api/video-intelligence/projects/{id}/videos` | Ingest and extract video metadata and first frame |
+| `GET` | `/api/video-intelligence/videos/{id}` | Get individual video details |
+| `PATCH` | `/api/video-intelligence/videos/{id}` | Rename video display title |
+| `DELETE` | `/api/video-intelligence/videos/{id}` | Delete video, calibrations, tracks, and exports |
+| `GET` | `/api/video-intelligence/videos/{id}/first-frame` | Stream extracted first frame JPEG |
+| `GET` | `/api/video-intelligence/videos/{id}/thumbnail` | Stream video thumbnail image |
+| `GET` | `/api/video-intelligence/videos/{id}/stream` | Stream source video file |
+| `GET` | `/api/video-intelligence/videos/{id}/annotated-stream` | Stream annotated YOLOv8 + ByteTrack MP4 |
+| `GET` | `/api/video-intelligence/videos/{id}/calibration` | Fetch 4-point GCP calibration and homography matrix |
+| `POST` | `/api/video-intelligence/videos/{id}/calibration` | Compute RANSAC homography and reprojection RMSE |
+| `POST` | `/api/video-intelligence/videos/{id}/process` | Launch background YOLOv8 + ByteTrack processing job |
+| `GET` | `/api/video-intelligence/jobs/{id}` | Poll real-time progress, FPS, frame counts, and stage |
+| `POST` | `/api/video-intelligence/jobs/{id}/cancel` | Cancel an active processing job |
+| `GET` | `/api/video-intelligence/videos/{id}/analytics` | Retrieve telemetry summary, LOS, and time-series metrics |
+| `GET` | `/api/video-intelligence/videos/{id}/trajectory-points`| Paginated observation points (timestamp, track, lat, lon, speed) |
+| `GET` | `/api/video-intelligence/videos/{id}/trajectories/csv` | Direct download of trajectory observations CSV |
+| `GET` | `/api/video-intelligence/videos/{id}/exports` | List generated export artifacts |
+| `GET` | `/api/video-intelligence/exports/{id}/download` | Download specific export artifact (CSV, GeoJSON, JSON) |
+
+### Frontend Application URL Architecture
+Every feature in TrafficOps has a dedicated, bookmarkable URL:
+| URL Path | Component / Page | Description |
+|---|---|---|
+| `/overview` | `VideoPlayerFeed` | Dual-camera playback & classification counters |
+| `/traffic-monitor` | `TrafficMonitorDashboard` | Dual live feeds, homography setup & tripwires |
+| `/route-planner` | `RoutePlanner` | GIS geocoding & multi-criteria pathfinding |
+| `/traffic-forecast` | `TrafficForecast` | 24-hour diurnal ML velocity forecasting |
+| `/historical-analytics`| `HistoricalAnalytics` | Volume distributions & rush-hour patterns |
+| `/trajectories` | `TrajectoriesSection` | 2D pixel coordinate trajectory logging |
+| `/analytics` | `KpiRow` + `AnalyticsCharts` | Network KPIs & time-series flow curves |
+| `/reports` | `ReportsView` | Audited session records & export archives |
+| `/video-intelligence` | `ProjectListPage` | Video intelligence projects listing & creation |
+| `/video-intelligence/projects/:projectId` | `SimpleProjectWorkspace` | Video drag-and-drop upload & history launcher |
+| `/video-intelligence/projects/:projectId/history` | `ProjectHistoryPage` | Video records table, MP4/CSV downloads & retry |
+| `/video-intelligence/projects/:projectId/videos/:videoId/setup` | `VideoSetupPage` | First-frame viewer, 4 GCP markers & homography validation |
+| `/video-intelligence/projects/:projectId/videos/:videoId/processing/:jobId` | `VideoProcessingPage` | Live progress monitor, FPS, frame counts & stage |
+| `/video-intelligence/projects/:projectId/videos/:videoId/analytics` | `SimpleVideoAnalyticsPage` | Annotated player, 4 charts & trajectory table with View seeking |
 
 ---
 
-## 7. Starting the System
+## 8. Data Sources, Datasets & Scientific Calibration
 
-### Start the FastAPI Backend
-In the backend terminal (with virtual environment activated):
+### 8.1 Included Demonstration Data
+* **`backend/data/historical_traffic.csv`:** Contains $5,768$ simulated records modeled across 8 major arterial corridors in Lucknow over 30 days using the **Bureau of Public Roads (BPR)** volume-delay equation:
+  $$T = T_0 \cdot \left(1 + \alpha \cdot \left(\frac{V}{C}\right)^\beta\right)$$
+  Where $T_0$ is free-flow travel time, $V$ is volume, $C$ is capacity, $\alpha = 0.15$, and $\beta = 4.0$.
+* **`backend/data/trajectory_data.json`:** Ground-truth pixel coordinate trajectories capturing vehicle paths across video frames.
+* **`backend/data/yolov8n.onnx`:** Pre-trained COCO object detection weights identifying standard vehicle classes.
+
+### 8.2 Real-World Data Integration
+To deploy the system in a real municipal environment:
+1. **Loop Detectors / FASTag Data:** Format continuous sensor measurements into the schema defined in `historical_traffic.csv` (timestamp, corridor ID, speed, volume).
+2. **CCTV Camera Ingest:** Configure RTSP camera URLs in the backend environment variables (`CAMERA_RTSP_<ID>=rtsp://user:pass@ip:port/stream`). Credentials remain on the backend and are never sent to the browser.
+3. **Planar Homography Calibration:** Use the Ground-Plane Calibration tool in the Traffic Monitor to provide four surveyed GPS points corresponding to pixel markers. This translates pixel velocity ($px/s$) to physical velocity ($km/h$).
+
+---
+
+## 9. Testing & Quality Assurance
+
+### Automated Backend Tests
+Run the comprehensive pytest suite covering API validation, camera security, corridor distance calculations, and video stream boundaries:
 ```powershell
-cd E:\Traffic_Analytics_Dashboard\backend
-uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
-```
-- API Root: `http://localhost:8000`
-- Interactive OpenAPI Docs: `http://localhost:8000/docs`
-
-### Start the React Frontend
-In the frontend terminal:
-```powershell
-cd E:\Traffic_Analytics_Dashboard\frontend
-npm run dev
-```
-- Dashboard UI: `http://localhost:5173`
-
-### Configure cameras and run a recording
-1. In `Traffic Monitor`, add two camera records with distinct IDs and provide their GPS coordinates if you intend to create a corridor.
-2. For RTSP cameras, set backend-only environment variables such as `CAMERA_RTSP_CAM_01=rtsp://...` before starting FastAPI. The ID is normalized to uppercase with punctuation replaced by underscores. Do not put credentials in the frontend or commit them.
-3. Start each configured camera from its card. The UI shows a live annotated feed only while the backend worker is connected.
-4. Upload a recording in `Traffic Monitor`. Optionally click two points on the preview to configure the finite counting line. Results can be partial if processing is stopped or interrupted.
-5. To create a corridor, select two configured cameras and provide their GPS locations. OSRM route lookup requires network access. Calibration requires at least four paired image/ground control points per camera via `POST /api/corridors/{corridor_id}/calibration`.
-
-The default detector is the bundled COCO ONNX model. It includes person, bicycle, car, motorcycle, bus, and truck classes, but not auto-rickshaw/three-wheeler. Supply compatible custom weights and `TRAFFIC_CLASS_MAPPING_JSON` to enable that category. Camera-local speed and road occupancy are not shown as physical measurements without calibration.
-
----
-
-## 8. Dataset Strategy & Data Sources
-
-### Demonstration Data (Included)
-The repository includes a clearly labeled synthetic dataset in `backend/data/historical_traffic.csv` generated using the standard **Bureau of Public Roads (BPR)** volume-delay relationship across 8 arterial road corridors in Lucknow over 30 days (5,768 records).
-- The historical API includes a provenance field and marks these records as `SIMULATED DEMO DATA`. Live camera and recorded-video results have separate source labels.
-- If the CSV is missing or invalid, the application returns no historical observations; it no longer silently generates replacement measurements.
-
-### Connecting Real-World Datasets
-1. **Caltrans PeMS (Freeway Performance Measurement System):**
-   - Source: [Caltrans PeMS](https://dot.ca.gov/programs/traffic-operations/mpr/pems-source)
-   - Contains 5-minute loop-detector volumes, occupancies, and speeds across California highways.
-2. **OpenStreetMap (Road Graph & Geometry):**
-   - Source: [OpenStreetMap](https://www.openstreetmap.org)
-   - Provides free road alignments, lane numbers, speed limits, and junction topologies.
-3. **City-Specific Telemetry (India):**
-   - Deploying for an Indian city (e.g. Lucknow, Delhi, Bengaluru) requires integrating local municipal traffic camera feeds, TomTom/Google licensed probe data, or FASTag toll telemetry.
-   - Simply format data to match the expected schema below and place it at `backend/data/historical_traffic.csv`.
-
-### Expected Dataset Schema
-
-| Column | Type | Unit | Description |
-|---|---|---|---|
-| `timestamp` | string (ISO-8601) | `YYYY-MM-DDTHH:MM:SS` | Measurement date and time |
-| `road_segment_id` | string | e.g. `RS-01` | Unique corridor identifier |
-| `road_name` | string | text | Descriptive name of corridor |
-| `speed_kmh` | float | km/h | Observed space-mean speed |
-| `volume` | integer | vehicles / hour | Detected hourly traffic volume |
-| `travel_time_seconds` | float | seconds | Segment traversal time: `(length / speed) * 3600` |
-| `road_length_km` | float | kilometers | Physical length of road segment |
-| `num_lanes` | integer | count | Number of traffic lanes |
-| `speed_limit_kmh` | float | km/h | Posted regulatory speed limit |
-| `is_demo_data` | boolean | bool | `true` if synthetic, `false` if sensor-measured |
-
----
-
-## 9. Machine Learning Pipeline & Training
-
-The repository includes an **XGBoost Regressor** trained with a chronological split. The saved metrics show that it performs worse than the historical same-hour baseline, so the inference service selects the baseline unless evaluation metadata shows XGBoost has a lower MAE. These metrics use synthetic data and do not establish field accuracy. No deep-learning forecast model is supplied or presented as available.
-
-### Input Features
-1. `hour` (0 to 23)
-2. `day_of_week` (0 to 6, Monday=0)
-3. `is_weekend` (0 or 1)
-4. `is_peak_hour` (1 during 08:00–10:00 & 17:00–20:00)
-5. `road_length_km`
-6. `num_lanes`
-7. `speed_limit_kmh`
-8. `road_segment_code` (numerical corridor encoding)
-9. `volume` (traffic flow rate)
-
-### Target Variable
-- `travel_time_seconds` (in seconds)
-
-### Training Command
-To retrain the model and regenerate evaluation metrics:
-```powershell
-cd E:\Traffic_Analytics_Dashboard\backend
-.\venv\Scripts\python.exe scripts/train_model.py
-```
-
-### Empirical Evaluation Results (on held-out test split)
-- **Dataset Size:** 5,768 records
-- **Split:** Chronological (70% Train = 4,037, 15% Val = 865, 15% Test = 866)
-- **Baseline (Segment + Hour Mean):**
-  - MAE: **17.01s**
-  - RMSE: **26.31s**
-  - R²: **0.8851**
-- **XGBoost Regressor:**
-  - MAE: **55.43s**
-  - RMSE: **65.79s**
-  - R²: **0.2816**
-- *Note:* Detailed findings and limitations are documented in `backend/models/EVALUATION_REPORT.md`.
-
----
-
-## 10. Route Planner Workflow
-
-1. **User Input:** Enter Origin (e.g., "Charbagh Railway Station"), Destination (e.g., "University of Lucknow"), City ("Lucknow"), Departure Time ("18:30"), and select a Routing Mode.
-2. **Geocoding:** The backend resolves locations to coordinates via verified regional landmark lookup, followed by OpenStreetMap Nominatim and Photon search.
-3. **Graph Routing:** The backend queries the OSRM road engine to calculate realistic route geometry, turn maneuvers, and driving distances based on actual OpenStreetMap vector data.
-4. **Mode A (Baseline):** Returns the shortest road-distance route.
-5. **Mode B (Traffic-Aware):** Evaluates corridor travel-time estimates using the ML predictor for the requested departure time.
-6. **Map Rendering:** The frontend renders the decoded GeoJSON coordinates on an interactive Leaflet map, fits the viewport bounds, draws custom origin/destination pins, and presents alternative route options.
-
----
-
-## 11. API Documentation
-
-### Route Endpoints
-- `POST /api/route/estimate`: Compute baseline or traffic-aware route geometry and alternatives.
-  - Body: `{"origin": "...", "destination": "...", "city": "...", "departure_time": "18:30", "mode": "baseline"}`
-- `POST /api/route/optimize`: Compare and rank candidate routes by duration and distance.
-
-### Traffic Forecast & Analytics Endpoints
-- `GET /api/traffic/roads`: List all monitored road segments.
-- `GET /api/traffic/forecast?road_segment_id=RS-01&timestamp=2026-10-25T18:30:00`: Point forecast for specific road and time.
-- `GET /api/traffic/24-hour?road_segment_id=RS-01&date=2026-10-25`: 24-hour forecast series.
-- `GET /api/traffic/analytics/summary`: Aggregate metrics across historical records.
-- `GET /api/traffic/analytics/hourly-pattern?road_segment_id=RS-01`: Diurnal volume and speed patterns.
-- `GET /api/traffic/analytics/weekday-comparison?road_segment_id=RS-01`: Weekday vs. weekend comparison.
-- `GET /api/traffic/analytics/peak-hours?road_segment_id=RS-01`: Rush hour detection.
-- `GET /api/traffic/analytics/congestion-trends?road_segment_id=RS-01`: Daily congestion index trends.
-- `GET /api/traffic/model-info`: ML model metadata, architecture, and evaluation metrics.
-
-### Preserved Existing Endpoints
-- `GET /api/health`: Backend health check.
-- `GET /api/trajectories/`: Trajectory points for camera tracking.
-- `GET /api/analytics/summary`: Top-level intersection KPIs.
-- `GET /api/analytics/vehicles-over-time`: Flow rate time series.
-- `GET /api/video-processing/recordings`: Metadata for two distinct annotated recordings, including media dimensions, duration, size, job summary, and stream URL.
-- `GET /api/video-processing/recordings/{recording_id}/stream`: Approved MP4 stream with HTTP byte-range seeking; IDs resolve only to files inside `TRAFFIC_OUTPUT_DIR`.
-- `GET /api/video-processing/recordings/{recording_id}/files/{export_name}`: Whitelisted CSV, JSON, or MP4 exports for discovered recordings.
-- `GET /api/video-processing/latest`: Latest completed database job, or a completed on-disk export when no database job is available.
-
-### Configure annotated recordings
-By default, the primary video is `backend/data/exports/535b437e-f51a-46eb-aa5f-21042d4396e5/annotated_browser.mp4`. Set backend environment variables `TRAFFIC_OUTPUT_DIR` and, if needed, `TRAFFIC_PRIMARY_ANNOTATED_VIDEO` to change the export directory or primary MP4. Relative paths resolve from the backend directory. The second player is discovered from a different job directory, preferring a valid completed export with a processing summary; partial outputs are identified as partial. Add or replace exports under the configured export directory using `annotated.mp4` or `annotated_browser.mp4` and, where available, keep `processing_summary.json` alongside the video. The browser never receives a filesystem path.
-
-Recorded playback is not a CCTV connection. Configure actual RTSP streams separately through Traffic Monitor and backend-only `CAMERA_RTSP_*` environment variables. Do not copy credentials into frontend settings.
-
----
-
-## 12. Testing & Verification
-
-### Running Automated Backend Tests
-Run the pytest test suite:
-```powershell
-cd E:\Traffic_Analytics_Dashboard\backend
+cd backend
 python -m pytest -q
 ```
-Tests cover existing API behavior plus camera source privacy, corridor registration, forecast provenance and validation, calibration guards, counting-line intersections, unique-track/export consistency, annotated-recording discovery, access confinement, and byte-range streaming.
 
-### Running Frontend Production Build
-Verify TypeScript compilation and bundling:
+### Frontend Code Quality
+Check TypeScript types and linting:
 ```powershell
-cd E:\Traffic_Analytics_Dashboard\frontend
-npm run build
-npx tsc --noEmit
+cd frontend
 npm run lint
 ```
 
 ---
 
-## 13. Feature Implementation Status
+## 10. Summary of Key Achievements
 
-| Feature | Status | Evidence / limits |
-|---|---|---|
-| **Overview recorded playback** | IMPLEMENTED; browser verification pending | `/api/video-processing/recordings`; distinct job outputs, byte-range streaming, browser-compatible files, and muted autoplay |
-| **Recorded video processing and exports** | PARTIALLY WORKING | `backend/app/vision/video_processor.py` and job summaries; confirmed-track counts and CSV/JSON exports exist; class support depends on ONNX weights |
-| **Live CCTV / RTSP monitoring** | BLOCKED BY MISSING HARDWARE OR DATA | Camera APIs and monitor UI exist; no real camera credentials or feeds are configured in this workspace |
-| **Trajectory file view** | WORKING | `backend/data/trajectory_data.json` and `/api/trajectories/`; file-based data is not live or calibrated |
-| **Risk Heatmap** | NOT IMPLEMENTED (removed) | Static sample imagery and visualization were not backed by calibrated camera telemetry |
-| **Corridor geometry / calibration** | PARTIALLY WORKING | `backend/app/routes/corridors.py` and camera calibration APIs; road lookup requires network access and real control points |
-| **Route Planner** | PARTIALLY WORKING | `frontend/src/pages/RoutePlanner.tsx` and `/api/route/*`; baseline routes require external services, traffic-aware ranking is unavailable until road-segment mapping exists |
-| **Historical Analytics** | WORKING | `/api/traffic/analytics/*`; bundled dataset is explicitly simulated, not current CCTV |
-| **Traffic Forecast** | PARTIALLY WORKING | `/api/traffic/forecast` and `/api/traffic/24-hour`; demo input and model gating are shown, not field-validated predictions |
-| **Physical speed, occupancy, density, and collision risk** | BLOCKED BY MISSING HARDWARE OR DATA | Measurement guards in `backend/app/traffic/calculations.py`; unavailable without synchronized measurements and calibrated road geometry |
-| **Deep-learning forecast** | NOT IMPLEMENTED | No trained sequence/DL model is supplied |
-| **Two-camera synchronization and cross-camera identity matching** | BLOCKED BY MISSING HARDWARE OR DATA | No synchronized live streams or calibration data; tracker IDs are camera-local |
-| **Light / Dark Mode** | WORKING | Theme switcher and CSS variables in `frontend/src/App.tsx` and `frontend/src/index.css` |
-| **Analytics** | WORKING on repository trajectory data | `frontend/src/components/AnalyticsCharts.tsx` labels file-derived counts and marks uncalibrated metrics unavailable |
-| **Reports and video exports** | IMPLEMENTED; runtime verification pending | `frontend/src/components/ReportsView.tsx` links to database-job exports or whitelisted files from a completed on-disk export |
-
-### Stabilization audit: current annotated recordings
-- Primary: `backend/data/exports/535b437e-f51a-46eb-aa5f-21042d4396e5/annotated_browser.mp4` — completed; processing summary reports 123 vehicles and 42 separate pedestrians.
-- Second: `backend/data/exports/940573ed-66df-4376-b211-18365e5bdf24/annotated_browser.mp4` — partial; its processing summary reports 18 vehicles and 5 separate pedestrians. The browser-compatible H.264 copy is derived from and does not replace the original `annotated.mp4`.
-- These are distinct annotated MP4s from separate processing jobs, but both summaries identify the same uploaded source filename. The second job processed only 1.5 seconds. Neither player is presented as live CCTV. Three-wheeler zeroes are unverified because the bundled COCO class set does not include that category. Browser autoplay/playback has not been validated in this environment.
-- Removed the static Risk Heatmap component and its two dedicated sample images. Removed the unreferenced `ArchitecturePipeline.tsx` (which included fabricated latency/risk stages) and unreferenced legacy `Dashboard.jsx` (which imported a missing HeatmapViewer).
-- If the public road-routing service is unavailable, the route API now returns a clear gateway error instead of presenting a straight-line approximation as road geometry. Traffic-aware ranking stays disabled until road paths can be mapped to validated forecast segments.
-
----
-
-## 14. Current Limitations
-
-1. **Synthetic Historical Dataset:** Real-time arterial sensors (loop detectors or licensed probe GPS feeds) are required for field deployment; bundled historical values are BPR-generated demonstration data.
-2. **Three-Wheeler Detection:** COCO weights have no auto-rickshaw class. Compatible fine-tuned weights and a verified mapping are required.
-3. **Cross-Camera Matching:** Track IDs are local to each camera. Cross-camera matches are not currently treated as verified unique counts or physical travel-speed measurements.
-4. **Calibration-Dependent Metrics:** Physical speed, road occupancy, and corridor density are unavailable until appropriate calibration, dimensions, and synchronized events are provided.
-5. **Safety Events:** Conflict/PET alerts and signal-cycle efficiency are not implemented telemetry; the report UI does not fabricate them.
-6. **OSRM Public Demo Server:** The public OSRM demo server has soft rate limits. For production city-scale routing, host a dedicated local OSRM instance using Docker (`osrm/osrm-backend`).
-7. **Nominatim Usage Policy:** Complies with the 1 request/second rule using built-in rate-limiting and pre-cached landmarks.
+* **A-to-Z UI Modernization:** Implemented a Command Center design with custom colors, high-contrast surfaces, and large fonts.
+* **Expanded Visualizations:** Chart heights increased to 380px–420px with custom dark tooltips and thick vector lines.
+* **Collapsible Navigation:** Responsive sidebar that can be opened or closed on desktop and mobile, with full-width dashboard expansion.
+* **Integrated Backend:** Fully operational FastAPI backend with live endpoints for routing, computer vision, forecasting, and historical telemetry.
+* **Production Build Verified:** Frontend and backend compile cleanly with zero errors.

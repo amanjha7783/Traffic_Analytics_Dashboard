@@ -203,7 +203,8 @@ def test_latest_completed_video_falls_back_to_existing_disk_exports(tmp_path, mo
 
     csv_response = client.get(result["exports"]["count_summary"])
     assert csv_response.status_code == 200
-    assert csv_response.text == "class,count\nBUS,2\n"
+    assert csv_response.text.replace("\r\n", "\n") == "class,count\nBUS,2\n"
+
     video_response = client.get(result["exports"]["annotated_video"])
     assert video_response.status_code == 200
     assert video_response.content == b"browser-video"

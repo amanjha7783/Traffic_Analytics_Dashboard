@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { NavTab } from './types';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
@@ -13,15 +14,60 @@ import { HistoricalAnalytics } from './pages/HistoricalAnalytics';
 import { TrafficForecast } from './pages/TrafficForecast';
 import { fetchSummary, fetchVehiclesOverTime, fetchTrajectories } from './services/api';
 
+// Video Intelligence Simplified Workflow Pages
+import { ProjectListPage } from './pages/video-intelligence/ProjectListPage';
+import { SimpleProjectWorkspace } from './pages/video-intelligence/SimpleProjectWorkspace';
+import { ProjectHistoryPage } from './pages/video-intelligence/ProjectHistoryPage';
+import { VideoSetupPage } from './pages/video-intelligence/VideoSetupPage';
+import { VideoProcessingPage } from './pages/video-intelligence/VideoProcessingPage';
+import { SimpleVideoAnalyticsPage } from './pages/video-intelligence/SimpleVideoAnalyticsPage';
+
+const getActiveTabFromPath = (pathname: string): NavTab => {
+  if (pathname.startsWith('/video-intelligence')) return 'video-intelligence';
+  if (pathname.startsWith('/traffic-monitor')) return 'traffic-monitor';
+  if (pathname.startsWith('/route-planner')) return 'route-planner';
+  if (pathname.startsWith('/traffic-forecast')) return 'traffic-forecast';
+  if (pathname.startsWith('/historical-analytics')) return 'historical-analytics';
+  if (pathname.startsWith('/trajectories')) return 'trajectories';
+  if (pathname.startsWith('/analytics')) return 'analytics';
+  if (pathname.startsWith('/reports')) return 'reports';
+  return 'overview';
+};
+
 export default function App() {
-  const [activeTab, setActiveTab] = useState<NavTab>('overview');
+  const location = useLocation();
+  const navigate = useNavigate();
+  const activeTab = getActiveTabFromPath(location.pathname);
+
   const [selectedVehicleId, setSelectedVehicleId] = useState<string>('');
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
-  
+
+  // Sidebar State (Persistent & Responsive)
+  const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('sidebar_open');
+      if (saved !== null) return saved === 'true';
+      return window.innerWidth >= 1024;
+    }
+    return true;
+  });
+
+  const toggleSidebar = () => {
+    setIsSidebarOpen((prev) => {
+      const next = !prev;
+      localStorage.setItem('sidebar_open', String(next));
+      return next;
+    });
+  };
+
+  const closeSidebar = () => {
+    setIsSidebarOpen(false);
+    localStorage.setItem('sidebar_open', 'false');
+  };
+
   // Theme State
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     const saved = localStorage.getItem('theme');
-    return (saved === 'light' || saved === 'dark') ? saved : 'dark';
+    return saved === 'light' || saved === 'dark' ? saved : 'dark';
   });
 
   useEffect(() => {
@@ -33,7 +79,7 @@ export default function App() {
     }
   }, [theme]);
 
-  // Real API State
+  // Real Telemetry API State for legacy tabs
   const [summaryData, setSummaryData] = useState<any>({});
   const [chartData, setChartData] = useState<any[]>([]);
   const [trajectoriesData, setTrajectoriesData] = useState<any[]>([]);
@@ -50,14 +96,14 @@ export default function App() {
           fetchTrajectories(),
         ]);
         if (!active) return;
-        
+
         const mappedTracks = (Array.isArray(trajData) ? trajData : []).map((d: any) => ({
-            id: String(d.vehicle_id),
-            type: String(d.vehicle_type || 'UNKNOWN'),
-            timestamp: Number(d.timestamp),
-            x: Number(d.x),
-            y: Number(d.y),
-            speed: Number.isFinite(Number(d.speed)) ? Number(d.speed) : undefined,
+          id: String(d.vehicle_id),
+          type: String(d.vehicle_type || 'UNKNOWN'),
+          timestamp: Number(d.timestamp),
+          x: Number(d.x),
+          y: Number(d.y),
+          speed: Number.isFinite(Number(d.speed)) ? Number(d.speed) : undefined,
         }));
 
         setSummaryData(sumData);
@@ -67,8 +113,8 @@ export default function App() {
         setIsLoading(false);
       } catch (err) {
         if (!active) return;
-        console.error("Error fetching data from backend", err);
-        setApiError("Unable to load traffic analytics. Please check the backend connection.");
+        console.error('Error fetching data from backend', err);
+        setApiError('Unable to load traffic analytics. Please check the backend connection.');
         setIsLoading(false);
       }
     };
@@ -84,83 +130,170 @@ export default function App() {
     <div className="min-h-screen bg-background font-body-md text-on-surface antialiased flex transition-colors duration-300">
       <Sidebar
         activeTab={activeTab}
-        onSelectTab={setActiveTab}
-        onOpenTrafficMonitor={() => setActiveTab('traffic-monitor')}
-        isOpenMobile={isMobileMenuOpen}
-        onCloseMobile={() => setIsMobileMenuOpen(false)}
+        onSelectTab={(tab) => navigate('/' + tab)}
+        onOpenTrafficMonitor={() => navigate('/traffic-monitor')}
+        isOpen={isSidebarOpen}
+        onClose={closeSidebar}
+        onToggle={toggleSidebar}
       />
 
-      <div className="flex-1 lg:pl-64 flex flex-col min-w-0">
+      <div
+        className={`flex-1 ${
+          isSidebarOpen ? 'lg:pl-64' : 'lg:pl-0'
+        } flex flex-col min-w-0 transition-all duration-200 ease-in-out`}
+      >
         <Header
-          onToggleMobileMenu={() => setIsMobileMenuOpen(true)}
+          onToggleSidebar={toggleSidebar}
+          isSidebarOpen={isSidebarOpen}
           theme={theme}
-          onToggleTheme={() => setTheme(prev => prev === 'dark' ? 'light' : 'dark')}
+          onToggleTheme={() => setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'))}
+          activeTab={activeTab}
         />
 
-        <main className="relative w-full bg-background px-space-md lg:px-gutter-lg py-space-lg">
-          {apiError && ['trajectories', 'analytics'].includes(activeTab) ? (
-             <div className="w-full p-space-xl bg-surface-container-low rounded-xl border border-error/20 flex flex-col items-center justify-center text-center">
-                 <span className="material-symbols-outlined text-[48px] text-error mb-4">error</span>
-                 <h2 className="font-headline-lg text-headline-lg text-on-surface">{apiError}</h2>
-                 <p className="text-on-surface-variant mt-2 font-body-lg">Verify that the FastAPI server is running on http://127.0.0.1:8000.</p>
-             </div>
-          ) : isLoading && ['trajectories', 'analytics'].includes(activeTab) ? (
-             <div className="w-full flex items-center justify-center p-space-2xl text-on-surface-variant">
-                <span className="material-symbols-outlined animate-spin text-[32px] text-primary">sync</span>
-                <span className="ml-4 font-headline-sm">Loading traffic data...</span>
-             </div>
-          ) : activeTab === 'overview' && (
-            <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-space-lg pb-space-2xl">
-              <VideoPlayerFeed onOpenTrafficMonitor={() => setActiveTab('traffic-monitor')} />
-            </div>
-          )}
+        <main className="relative w-full bg-background px-3 sm:px-4 lg:px-6 py-4">
+          <Routes>
+            {/* Root redirect */}
+            <Route path="/" element={<Navigate to="/overview" replace />} />
 
-          {/* Render other tabs */}
-          {activeTab === 'traffic-monitor' && (
-            <div className="flex flex-col w-full pb-space-2xl">
-              <TrafficMonitorDashboard />
-            </div>
-          )}
+            {/* Existing Primary Tabs */}
+            <Route
+              path="/overview"
+              element={
+                <div className="mx-auto flex w-full max-w-[1720px] flex-col gap-6 pb-12">
+                  <VideoPlayerFeed onOpenTrafficMonitor={() => navigate('/traffic-monitor')} />
+                </div>
+              }
+            />
 
-          {!isLoading && !apiError && activeTab === 'trajectories' && (
-            <div className="flex flex-col w-full gap-space-lg pb-space-2xl">
-              <TrajectoriesSection
-                vehicleTracks={trajectoriesData}
-                selectedVehicleId={selectedVehicleId}
-                onSelectVehicle={setSelectedVehicleId}
-              />
-            </div>
-          )}
-          
-          {!isLoading && !apiError && activeTab === 'analytics' && (
-            <div className="flex flex-col w-full gap-space-lg pb-space-2xl">
-              <KpiRow 
-                 totalVehicles={summaryData.total_vehicles}
-                 avgSpeed={summaryData.average_speed}
-              />
-              <AnalyticsCharts data={chartData} />
-            </div>
-          )}
+            <Route
+              path="/traffic-monitor"
+              element={
+                <div className="mx-auto flex flex-col w-full max-w-[1720px] pb-12">
+                  <TrafficMonitorDashboard />
+                </div>
+              }
+            />
 
-          {activeTab === 'route-planner' && (
-            <RoutePlanner />
-          )}
+            <Route
+              path="/route-planner"
+              element={
+                <div className="mx-auto w-full max-w-[1720px]">
+                  <RoutePlanner />
+                </div>
+              }
+            />
 
-          {activeTab === 'traffic-forecast' && (
-            <TrafficForecast />
-          )}
+            <Route
+              path="/traffic-forecast"
+              element={
+                <div className="mx-auto w-full max-w-[1720px]">
+                  <TrafficForecast />
+                </div>
+              }
+            />
 
-          {activeTab === 'historical-analytics' && (
-            <HistoricalAnalytics />
-          )}
+            <Route
+              path="/historical-analytics"
+              element={
+                <div className="mx-auto w-full max-w-[1720px]">
+                  <HistoricalAnalytics />
+                </div>
+              }
+            />
 
-          {activeTab === 'reports' && (
-             <ReportsView />
-          )}
+            <Route
+              path="/trajectories"
+              element={
+                apiError ? (
+                  <div className="w-full p-6 lg:p-8 bg-surface-container-low rounded border border-danger/40 flex flex-col items-center justify-center text-center">
+                    <div className="w-12 h-12 rounded bg-danger/10 border border-danger/30 flex items-center justify-center text-danger mb-3">
+                      <span className="material-symbols-outlined text-[28px]">warning</span>
+                    </div>
+                    <h2 className="text-base font-semibold text-on-surface">{apiError}</h2>
+                    <p className="text-on-surface-variant mt-1 text-xs max-w-md">
+                      Verify that the FastAPI backend server is running on http://127.0.0.1:8000.
+                    </p>
+                  </div>
+                ) : isLoading ? (
+                  <div className="w-full flex flex-col items-center justify-center p-12 text-on-surface-variant">
+                    <span className="material-symbols-outlined animate-spin text-[32px] text-primary">
+                      progress_activity
+                    </span>
+                    <span className="mt-3 text-sm font-semibold text-on-surface">Synchronizing Traffic Data...</span>
+                  </div>
+                ) : (
+                  <div className="mx-auto flex flex-col w-full max-w-[1720px] gap-6 pb-12">
+                    <TrajectoriesSection
+                      vehicleTracks={trajectoriesData}
+                      selectedVehicleId={selectedVehicleId}
+                      onSelectVehicle={setSelectedVehicleId}
+                    />
+                  </div>
+                )
+              }
+            />
 
+            <Route
+              path="/analytics"
+              element={
+                apiError ? (
+                  <div className="w-full p-6 lg:p-8 bg-surface-container-low rounded border border-danger/40 flex flex-col items-center justify-center text-center">
+                    <div className="w-12 h-12 rounded bg-danger/10 border border-danger/30 flex items-center justify-center text-danger mb-3">
+                      <span className="material-symbols-outlined text-[28px]">warning</span>
+                    </div>
+                    <h2 className="text-base font-semibold text-on-surface">{apiError}</h2>
+                  </div>
+                ) : (
+                  <div className="mx-auto flex flex-col w-full max-w-[1720px] gap-6 pb-12">
+                    <KpiRow totalVehicles={summaryData.total_vehicles} avgSpeed={summaryData.average_speed} />
+                    <AnalyticsCharts data={chartData} />
+                  </div>
+                )
+              }
+            />
+
+            <Route
+              path="/reports"
+              element={
+                <div className="mx-auto w-full max-w-[1720px]">
+                  <ReportsView />
+                </div>
+              }
+            />
+
+            {/* Video Intelligence Distinct Workflow Routes */}
+            {/* 1. Project Listing */}
+            <Route path="/video-intelligence" element={<ProjectListPage />} />
+
+            {/* 2. Project Workspace (Upload + History button ONLY) */}
+            <Route path="/video-intelligence/projects/:projectId" element={<SimpleProjectWorkspace />} />
+
+            {/* 3. Project History */}
+            <Route path="/video-intelligence/projects/:projectId/history" element={<ProjectHistoryPage />} />
+
+            {/* 4. Video Setup & Calibration */}
+            <Route
+              path="/video-intelligence/projects/:projectId/videos/:videoId/setup"
+              element={<VideoSetupPage />}
+            />
+
+            {/* 5. Processing Monitor */}
+            <Route
+              path="/video-intelligence/projects/:projectId/videos/:videoId/processing/:jobId"
+              element={<VideoProcessingPage />}
+            />
+
+            {/* 6. Video Analytics Page */}
+            <Route
+              path="/video-intelligence/projects/:projectId/videos/:videoId/analytics"
+              element={<SimpleVideoAnalyticsPage />}
+            />
+
+            {/* Catch-all redirect */}
+            <Route path="*" element={<Navigate to="/overview" replace />} />
+          </Routes>
         </main>
       </div>
-
     </div>
   );
 }

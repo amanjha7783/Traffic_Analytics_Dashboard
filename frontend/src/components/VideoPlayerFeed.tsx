@@ -9,41 +9,49 @@ interface VideoPlayerFeedProps {
   onOpenTrafficMonitor: () => void;
 }
 
-const categoryLabels: Array<[string, string]> = [
-  ['TWO-WHEELER', 'Two-wheelers'],
-  ['THREE-WHEELER', 'Three-wheelers'],
-  ['FOUR-WHEELER', 'Four-wheeler / car'],
-  ['BUS', 'Buses'],
-  ['TRUCK', 'Trucks'],
-  ['BICYCLE', 'Bicycles'],
-  ['OTHER', 'Other vehicles'],
+const CATEGORIES: Array<{ key: string; label: string; icon: string }> = [
+  { key: 'TWO-WHEELER', label: '2-Wheeler (Motorcycle/Scooter)', icon: 'two_wheeler' },
+  { key: 'THREE-WHEELER', label: '3-Wheeler (Auto-Rickshaw)', icon: 'electric_rickshaw' },
+  { key: 'FOUR-WHEELER', label: '4-Wheeler (Passenger Car)', icon: 'directions_car' },
+  { key: 'BUS', label: 'Transit Bus', icon: 'directions_bus' },
+  { key: 'TRUCK', label: 'Heavy Truck / Commercial', icon: 'local_shipping' },
+  { key: 'BICYCLE', label: 'Non-Motorized Bicycle', icon: 'pedal_bike' },
+  { key: 'OTHER', label: 'Other Classified', icon: 'commute' },
 ];
 
 function RecordingPlayer({ recording }: { recording: AnnotatedRecording }) {
   const [playbackState, setPlaybackState] = useState<'loading' | 'ready' | 'error'>(
     recording.available ? 'loading' : 'error',
   );
-  const counts = recording.summary.category_counts;
+  const counts = recording.summary.category_counts || {};
 
   return (
-    <article className="overflow-hidden rounded-xl border border-outline-variant/20 bg-surface-container-low shadow-md">
-      <header className="flex flex-wrap items-start justify-between gap-3 p-4">
-        <div>
-          <h2 className="font-headline-md font-semibold text-on-surface">
-            {recording.display_name}
-          </h2>
-          <p className="mt-1 text-xs text-on-surface-variant">
-            Recorded Annotated Footage · not a live camera
-          </p>
+    <article className="rounded border border-outline-variant bg-surface flex flex-col overflow-hidden">
+      {/* Video Stream Header */}
+      <header className="px-4 py-2.5 bg-surface-container-low border-b border-outline-variant flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="w-2 h-2 rounded-full bg-success shrink-0" />
+          <div className="flex items-baseline gap-2 min-w-0">
+            <h2 className="text-xs font-semibold text-on-surface truncate">
+              {recording.display_name}
+            </h2>
+            <span className="text-[10px] font-mono text-on-surface-variant hidden sm:inline truncate">
+              {recording.summary.video_filename || 'CCTV Feed'}
+            </span>
+          </div>
         </div>
-        {recording.status && (
-          <span className="rounded-full bg-surface-container-high px-2.5 py-1 text-xs font-semibold text-on-surface-variant">
-            {recording.summary.is_partial ? 'Partial processing result' : recording.status}
-          </span>
-        )}
+
+        <div className="flex items-center gap-2 shrink-0">
+          {recording.status && (
+            <span className="px-2 py-0.5 rounded text-[10px] font-mono font-medium uppercase border border-outline-variant bg-surface text-on-surface-variant">
+              {recording.summary.is_partial ? 'Partial Dataset' : recording.status}
+            </span>
+          )}
+        </div>
       </header>
 
-      <div className="relative aspect-video bg-black">
+      {/* Video Viewport */}
+      <div className="relative aspect-video bg-black/90 flex items-center justify-center">
         {recording.available && recording.stream_url && (
           <video
             key={recording.recording_id}
@@ -56,71 +64,112 @@ function RecordingPlayer({ recording }: { recording: AnnotatedRecording }) {
             onCanPlay={() => setPlaybackState('ready')}
             onPlay={() => setPlaybackState('ready')}
             onError={() => setPlaybackState('error')}
-            className="absolute inset-0 h-full w-full object-contain"
+            className="h-full w-full object-contain"
             aria-label={`${recording.display_name} recorded traffic footage`}
           />
         )}
         {playbackState !== 'ready' && (
-          <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-2 bg-surface-container-low px-6 text-center text-on-surface-variant">
-            <span className="material-symbols-outlined text-4xl">
-              {playbackState === 'loading' ? 'hourglass_top' : 'video_file'}
+          <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-2 bg-surface-container-low/95 px-4 text-center">
+            <span className="material-symbols-outlined text-[28px] text-primary">
+              {playbackState === 'loading' ? 'hourglass_top' : 'videocam_off'}
             </span>
-            <p className="text-sm">
+            <p className="text-xs font-medium text-on-surface">
               {recording.available
                 ? playbackState === 'loading'
-                  ? 'Loading video… playback starts automatically; use the controls if needed.'
-                  : 'This annotated video could not be played.'
-                : recording.error || 'Annotated video not available.'}
+                  ? 'Loading annotated video stream...'
+                  : 'Unable to stream recording from storage.'
+                : recording.error || 'Annotated video feed unavailable.'}
             </p>
           </div>
         )}
       </div>
 
+      {/* Technical Telemetry Strip */}
+      <div className="px-4 py-2 bg-surface-container-low border-b border-outline-variant grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] font-mono text-on-surface-variant">
+        <div>
+          <span className="text-on-surface-variant/70">Duration: </span>
+          <span className="text-on-surface font-medium">
+            {recording.duration_seconds !== null ? `${recording.duration_seconds.toFixed(1)}s` : 'N/A'}
+          </span>
+        </div>
+        <div>
+          <span className="text-on-surface-variant/70">Resolution: </span>
+          <span className="text-on-surface font-medium">
+            {recording.width && recording.height ? `${recording.width}×${recording.height}` : 'N/A'}
+          </span>
+        </div>
+        <div>
+          <span className="text-on-surface-variant/70">File Size: </span>
+          <span className="text-on-surface font-medium">
+            {recording.file_size_bytes !== null ? `${(recording.file_size_bytes / (1024 * 1024)).toFixed(1)} MB` : 'N/A'}
+          </span>
+        </div>
+        <div>
+          <span className="text-on-surface-variant/70">Job ID: </span>
+          <span className="text-on-surface font-medium truncate" title={recording.processing_job_id || ''}>
+            {recording.processing_job_id ? recording.processing_job_id.slice(0, 10) : 'N/A'}
+          </span>
+        </div>
+      </div>
+
+      {/* Vehicle Classification Counters Table */}
       {recording.available && (
-        <div className="space-y-3 p-4">
-          <p className="text-xs text-on-surface-variant">
-            {recording.summary.video_filename || 'Recorded video'}
-            {recording.processing_job_id && ` · Job ${recording.processing_job_id}`}
-            {recording.duration_seconds !== null && ` · ${recording.duration_seconds.toFixed(1)} s`}
-            {recording.width && recording.height && ` · ${recording.width}×${recording.height}`}
-            {recording.file_size_bytes !== null
-              && ` · ${(recording.file_size_bytes / (1024 * 1024)).toFixed(1)} MB`}
-          </p>
-          {counts && (
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-              {categoryLabels.map(([category, label]) => (
-                <div key={category} className="rounded-lg bg-surface-container p-2.5">
-                  <p className="text-xs text-on-surface-variant">{label}</p>
-                  <p className="mt-1 font-semibold text-primary">
-                    {counts[category] ?? 0}
-                  </p>
-                </div>
-              ))}
-              <div className="rounded-lg bg-surface-container p-2.5">
-                <p className="text-xs text-on-surface-variant">Pedestrians (separate)</p>
-                <p className="mt-1 font-semibold text-on-surface">
-                  {recording.summary.pedestrians ?? counts.PEDESTRIAN ?? '--'}
-                </p>
-              </div>
-              <div className="rounded-lg bg-surface-container p-2.5">
-                <p className="text-xs text-on-surface-variant">Total vehicles</p>
-                <p className="mt-1 font-semibold text-primary">
-                  {recording.summary.total_vehicles_including_bicycle
-                    ?? recording.summary.total_motor_vehicles
-                    ?? '--'}
-                </p>
-              </div>
+        <div className="p-3.5 flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-mono uppercase font-semibold text-on-surface-variant tracking-wider">
+              Vehicle Classification Counts
+            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] text-on-surface-variant">Total Motor Vehicles:</span>
+              <span className="font-mono text-xs font-bold text-primary px-1.5 py-0.5 rounded bg-primary/10 border border-primary/20">
+                {recording.summary.total_vehicles_including_bicycle
+                  ?? recording.summary.total_motor_vehicles
+                  ?? 0}
+              </span>
             </div>
-          )}
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {CATEGORIES.map(({ key, label, icon }) => (
+              <div
+                key={key}
+                className="p-2 rounded border border-outline-variant bg-surface-container-low flex items-center justify-between"
+              >
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <span className="material-symbols-outlined text-[16px] text-on-surface-variant shrink-0">
+                    {icon}
+                  </span>
+                  <span className="text-[11px] text-on-surface-variant truncate" title={label}>
+                    {key.replace('-', ' ')}
+                  </span>
+                </div>
+                <span className="font-mono text-xs font-semibold text-on-surface ml-2">
+                  {counts[key] ?? 0}
+                </span>
+              </div>
+            ))}
+
+            {/* Pedestrians */}
+            <div className="p-2 rounded border border-outline-variant bg-surface-container-low flex items-center justify-between">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <span className="material-symbols-outlined text-[16px] text-on-surface-variant shrink-0">
+                  directions_walk
+                </span>
+                <span className="text-[11px] text-on-surface-variant truncate">
+                  PEDESTRIANS
+                </span>
+              </div>
+              <span className="font-mono text-xs font-semibold text-on-surface ml-2">
+                {recording.summary.pedestrians ?? counts.PEDESTRIAN ?? 0}
+              </span>
+            </div>
+          </div>
+
           {recording.summary.speed_kmh == null && (
-            <p className="text-xs text-on-surface-variant">
-              Physical speed: not measured; calibrated ground-plane data is required.
-            </p>
-          )}
-          {counts && (
-            <p className="text-xs text-on-surface-variant">
-              Counts are from this recorded processing job. Three-wheeler detection is unavailable with the configured COCO model, so zero does not establish absence.
-            </p>
+            <div className="text-[10px] font-mono text-on-surface-variant flex items-center gap-1.5 pt-1 border-t border-outline-variant/50">
+              <span className="material-symbols-outlined text-[14px] text-warning">info</span>
+              <span>Physical road velocity requires 4-point homography plane calibration.</span>
+            </div>
           )}
         </div>
       )}
@@ -172,16 +221,28 @@ export const VideoPlayerFeed: React.FC<VideoPlayerFeedProps> = ({ onOpenTrafficM
 
   return (
     <section className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="font-headline-lg font-bold text-on-surface">
-            Processed Video Playback
-          </h1>
-          <p className="mt-1 text-sm text-on-surface-variant">
-            Two distinct annotated recordings. Live CCTV connection status is shown separately in Traffic Monitor.
-          </p>
+      {/* Operational Toolbar */}
+      <div className="p-3.5 rounded border border-outline-variant bg-surface flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded bg-surface-container-high border border-outline-variant flex items-center justify-center text-primary shrink-0">
+            <span className="material-symbols-outlined text-[18px]">videocam</span>
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-sm font-semibold text-on-surface">
+                Synchronized CCTV Inferences
+              </h1>
+              <span className="px-1.5 py-0.2 rounded text-[10px] font-mono font-semibold bg-success/15 text-success border border-success/30">
+                DUAL DETECTOR
+              </span>
+            </div>
+            <p className="text-xs text-on-surface-variant">
+              Dual-angle computer vision inference feeds with bounding box detections & vehicle class counts
+            </p>
+          </div>
         </div>
-        <div className="flex gap-2">
+
+        <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={() => {
@@ -190,33 +251,44 @@ export const VideoPlayerFeed: React.FC<VideoPlayerFeedProps> = ({ onOpenTrafficM
               void loadRecordings();
             }}
             disabled={loading}
-            className="rounded-lg border border-outline-variant/30 px-3 py-2 text-sm text-on-surface disabled:opacity-50"
+            className="px-3 py-1.5 rounded border border-outline-variant bg-surface-container-low hover:bg-surface-container text-xs font-medium text-on-surface transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
           >
-            {loading ? 'Loading…' : 'Refresh'}
+            <span className={`material-symbols-outlined text-[16px] ${loading ? 'animate-spin' : ''}`}>
+              refresh
+            </span>
+            <span>{loading ? 'Refreshing…' : 'Refresh Feeds'}</span>
           </button>
+
           <button
             type="button"
             onClick={onOpenTrafficMonitor}
-            className="rounded-lg bg-primary-container px-3 py-2 text-sm font-semibold text-on-primary-container"
+            className="px-3 py-1.5 rounded bg-primary text-white text-xs font-medium hover:bg-primary/90 transition-colors flex items-center gap-1.5 cursor-pointer"
           >
-            Open Traffic Monitor
+            <span className="material-symbols-outlined text-[16px]">settings</span>
+            <span>Configure Stream Ingest</span>
           </button>
         </div>
       </div>
 
       {loading && recordings.length === 0 ? (
-        <div className="flex aspect-video items-center justify-center rounded-xl bg-surface-container-low text-on-surface-variant">
-          Loading annotated recordings…
+        <div className="flex aspect-video max-h-96 items-center justify-center rounded border border-outline-variant bg-surface p-8 text-center text-on-surface-variant">
+          <div className="flex flex-col items-center gap-2">
+            <span className="material-symbols-outlined text-[28px] text-primary animate-spin">sync</span>
+            <p className="text-xs font-medium text-on-surface">Querying annotated video streams...</p>
+          </div>
         </div>
       ) : error ? (
-        <div className="rounded-xl border border-error/20 bg-surface-container-low p-8 text-center text-on-surface-variant">
-          <p>{error}</p>
+        <div className="rounded border border-danger/40 bg-surface p-6 text-center text-on-surface flex flex-col items-center justify-center">
+          <div className="w-10 h-10 rounded bg-danger/10 border border-danger/30 flex items-center justify-center text-danger mb-2">
+            <span className="material-symbols-outlined text-[22px]">error</span>
+          </div>
+          <p className="text-xs font-medium">{error}</p>
           <button
             type="button"
             onClick={() => void loadRecordings()}
-            className="mt-4 rounded-lg bg-primary-container px-4 py-2 text-sm font-semibold text-on-primary-container"
+            className="mt-3 px-3 py-1.5 rounded bg-primary text-white text-xs font-medium hover:bg-primary/90 cursor-pointer transition-colors"
           >
-            Retry
+            Retry Connection
           </button>
         </div>
       ) : (

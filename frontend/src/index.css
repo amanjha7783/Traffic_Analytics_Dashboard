@@ -2,81 +2,95 @@
 
 @layer base {
   :root {
-    /* LIGHT THEME (Clean, Professional) */
-    --color-background: #f5f7fa;
-    --color-surface: #ffffff;
-    --color-surface-dim: #e4e7eb;
-    --color-surface-bright: #ffffff;
-    --color-surface-container-lowest: #ffffff;
-    --color-surface-container-low: #f8fafc;
-    --color-surface-container: #f1f5f9;
-    --color-surface-container-high: #e2e8f0;
-    --color-surface-container-highest: #cbd5e1;
+    /* LIGHT THEME (Enterprise Transportation System) */
+    --color-background: #F5F7FA;
+    --color-surface: #FFFFFF;
+    --color-surface-dim: #EDF1F5;
+    --color-surface-bright: #FFFFFF;
+    --color-surface-container-lowest: #FFFFFF;
+    --color-surface-container-low: #F8FAFC;
+    --color-surface-container: #FFFFFF;
+    --color-surface-container-high: #F1F5F9;
+    --color-surface-container-highest: #E2E8F0;
     
-    --color-on-background: #0f172a;
-    --color-on-surface: #1e293b;
-    --color-on-surface-variant: #64748b;
-    --color-outline: #94a3b8;
-    --color-outline-variant: #cbd5e1;
+    --color-on-background: #172033;
+    --color-on-surface: #172033;
+    --color-on-surface-variant: #64748B;
+    --color-outline: #CBD5E1;
+    --color-outline-variant: #E2E8F0;
     
-    --color-primary: #0284c7;
-    --color-primary-container: #e0f2fe;
-    --color-on-primary: #ffffff;
-    --color-on-primary-container: #0369a1;
+    /* Primary Accent: Steel Navy */
+    --color-primary: #315B8A;
+    --color-primary-container: #E7EFF8;
+    --color-on-primary: #FFFFFF;
+    --color-on-primary-container: #1C3B5E;
     
-    --color-secondary: #0f172a;
-    --color-secondary-container: #e2e8f0;
-    --color-on-secondary: #ffffff;
-    --color-on-secondary-container: #0f172a;
+    /* Warning: Ochre Amber */
+    --color-secondary: #C58A24;
+    --color-secondary-container: #FEF7EC;
+    --color-on-secondary: #FFFFFF;
+    --color-on-secondary-container: #784E07;
     
-    --color-tertiary: #059669;
-    --color-tertiary-container: #d1fae5;
-    --color-on-tertiary: #ffffff;
-    --color-on-tertiary-container: #065f46;
+    /* Success: Forest Green */
+    --color-tertiary: #16845B;
+    --color-tertiary-container: #EBF8F2;
+    --color-on-tertiary: #FFFFFF;
+    --color-on-tertiary-container: #0C4E35;
     
-    --color-error: #dc2626;
-    --color-error-container: #fee2e2;
-    --color-on-error: #ffffff;
-    --color-on-error-container: #991b1b;
+    /* Danger / Error: Muted Crimson */
+    --color-error: #C44848;
+    --color-error-container: #FDEDEE;
+    --color-on-error: #FFFFFF;
+    --color-on-error-container: #7E2424;
+
+    --color-warning: #C58A24;
+    --color-success: #16845B;
   }
 
   .dark {
-    /* DARK THEME (Existing Professional Dark) */
-    --color-background: #0f131c;
-    --color-surface: #0f131c;
-    --color-surface-dim: #0f131c;
-    --color-surface-bright: #353942;
-    --color-surface-container-lowest: #0a0e16;
-    --color-surface-container-low: #181c24;
-    --color-surface-container: #1c2028;
-    --color-surface-container-high: #262a33;
-    --color-surface-container-highest: #31353e;
+    /* DARK THEME (Control Room SCADA Monitoring) */
+    --color-background: #101722;
+    --color-surface: #172231;
+    --color-surface-dim: #0D131C;
+    --color-surface-bright: #233144;
+    --color-surface-container-lowest: #0C121B;
+    --color-surface-container-low: #131C28;
+    --color-surface-container: #172231;
+    --color-surface-container-high: #1D2B3C;
+    --color-surface-container-highest: #26384E;
     
-    --color-on-background: #dfe2ee;
-    --color-on-surface: #dfe2ee;
-    --color-on-surface-variant: #bcc9cd;
-    --color-outline: #869397;
-    --color-outline-variant: #3d494c;
+    --color-on-background: #E8EDF4;
+    --color-on-surface: #E8EDF4;
+    --color-on-surface-variant: #9AAABD;
+    --color-outline: #3B4D63;
+    --color-outline-variant: #2A394B;
     
-    --color-primary: #4cd7f6;
-    --color-primary-container: #06b6d4;
-    --color-on-primary: #003640;
-    --color-on-primary-container: #00424f;
+    /* Primary Accent: Steel Blue */
+    --color-primary: #729CCB;
+    --color-primary-container: #203650;
+    --color-on-primary: #0D1A29;
+    --color-on-primary-container: #D8E6F5;
     
-    --color-secondary: #adc6ff;
-    --color-secondary-container: #0566d9;
-    --color-on-secondary: #002e6a;
-    --color-on-secondary-container: #e6ecff;
+    /* Warning: Warm Ochre */
+    --color-secondary: #E5A43B;
+    --color-secondary-container: #422D0A;
+    --color-on-secondary: #221401;
+    --color-on-secondary-container: #FDE8C4;
     
-    --color-tertiary: #4edea3;
-    --color-tertiary-container: #1bbd85;
-    --color-on-tertiary: #003824;
-    --color-on-tertiary-container: #00452e;
+    /* Success: Signal Green */
+    --color-tertiary: #1EB980;
+    --color-tertiary-container: #0A3C28;
+    --color-on-tertiary: #011E13;
+    --color-on-tertiary-container: #BFF2DD;
     
-    --color-error: #ffb4ab;
-    --color-error-container: #93000a;
-    --color-on-error: #690005;
-    --color-on-error-container: #ffdad6;
+    /* Danger / Error: Signal Red */
+    --color-error: #E05D5D;
+    --color-error-container: #4D1A1A;
+    --color-on-error: #FFFFFF;
+    --color-on-error-container: #FBD5D5;
+
+    --color-warning: #E5A43B;
+    --color-success: #1EB980;
   }
 
   html, body {
@@ -84,8 +98,11 @@
     padding: 0;
     background-color: var(--color-background);
     color: var(--color-on-background);
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    overscroll-behavior: none;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size: 14px;
+    line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   ::-webkit-scrollbar {
@@ -93,14 +110,14 @@
     height: 6px;
   }
   ::-webkit-scrollbar-track {
-    background: var(--color-surface-container-lowest);
+    background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    background: var(--color-surface-container-high);
+    background: var(--color-outline-variant);
     border-radius: 3px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: var(--color-outline-variant);
+    background: var(--color-outline);
   }
 }
 
@@ -139,168 +156,57 @@
 .text-on-error { color: var(--color-on-error); }
 .text-outline { color: var(--color-outline); }
 
-/* In Tailwind v4, we use rgb variables for opacity modifiers, but for now we'll just map the border directly or rely on the var if it doesn't use alpha */
-.border-outline-variant\/10 { border-color: color-mix(in srgb, var(--color-outline-variant) 10%, transparent); }
-.border-outline-variant\/20 { border-color: color-mix(in srgb, var(--color-outline-variant) 20%, transparent); }
-.border-outline-variant\/30 { border-color: color-mix(in srgb, var(--color-outline-variant) 30%, transparent); }
-.border-outline-variant\/40 { border-color: color-mix(in srgb, var(--color-outline-variant) 40%, transparent); }
-.border-outline-variant\/50 { border-color: color-mix(in srgb, var(--color-outline-variant) 50%, transparent); }
+/* Border color modifiers */
+.border-outline { border-color: var(--color-outline); }
+.border-outline-variant { border-color: var(--color-outline-variant); }
+.border-outline-variant\/10 { border-color: color-mix(in srgb, var(--color-outline-variant) 30%, transparent); }
+.border-outline-variant\/15 { border-color: color-mix(in srgb, var(--color-outline-variant) 40%, transparent); }
+.border-outline-variant\/20 { border-color: color-mix(in srgb, var(--color-outline-variant) 50%, transparent); }
+.border-outline-variant\/30 { border-color: color-mix(in srgb, var(--color-outline-variant) 70%, transparent); }
+.border-outline-variant\/40 { border-color: var(--color-outline-variant); }
+.border-outline-variant\/50 { border-color: var(--color-outline-variant); }
+.border-outline-variant\/60 { border-color: var(--color-outline-variant); }
 
-/* Spacing Variables */
-.p-space-xs { padding: 0.25rem; }
-.p-space-sm { padding: 0.5rem; }
-.p-space-md { padding: 0.75rem; }
-.p-space-lg { padding: 1rem; }
-.p-space-xl { padding: 1.5rem; }
-.p-space-2xl { padding: 2rem; }
+/* Semantic utility classes */
+.bg-success { background-color: var(--color-success); }
+.bg-success\/15 { background-color: color-mix(in srgb, var(--color-success) 15%, transparent); }
+.text-success { color: var(--color-success); }
+.border-success { border-color: var(--color-success); }
+.border-success\/30 { border-color: color-mix(in srgb, var(--color-success) 30%, transparent); }
+.border-success\/40 { border-color: color-mix(in srgb, var(--color-success) 40%, transparent); }
 
-.px-space-xs { padding-left: 0.25rem; padding-right: 0.25rem; }
-.px-space-sm { padding-left: 0.5rem; padding-right: 0.5rem; }
-.px-space-md { padding-left: 0.75rem; padding-right: 0.75rem; }
-.px-space-lg { padding-left: 1rem; padding-right: 1rem; }
-.px-gutter-lg { padding-left: 1.5rem; padding-right: 1.5rem; }
+.bg-warning { background-color: var(--color-warning); }
+.bg-warning\/15 { background-color: color-mix(in srgb, var(--color-warning) 15%, transparent); }
+.text-warning { color: var(--color-warning); }
+.border-warning { border-color: var(--color-warning); }
+.border-warning\/30 { border-color: color-mix(in srgb, var(--color-warning) 30%, transparent); }
 
-.py-space-xs { padding-top: 0.25rem; padding-bottom: 0.25rem; }
-.py-space-sm { padding-top: 0.5rem; padding-bottom: 0.5rem; }
-.py-space-md { padding-top: 0.75rem; padding-bottom: 0.75rem; }
-.py-space-lg { padding-top: 1rem; padding-bottom: 1rem; }
+.bg-danger { background-color: var(--color-error); }
+.bg-danger\/10 { background-color: color-mix(in srgb, var(--color-error) 10%, transparent); }
+.bg-danger\/15 { background-color: color-mix(in srgb, var(--color-error) 15%, transparent); }
+.text-danger { color: var(--color-error); }
+.border-danger { border-color: var(--color-error); }
+.border-danger\/30 { border-color: color-mix(in srgb, var(--color-error) 30%, transparent); }
+.border-danger\/40 { border-color: color-mix(in srgb, var(--color-error) 40%, transparent); }
 
-.mt-space-xs { margin-top: 0.25rem; }
-.mt-space-sm { margin-top: 0.5rem; }
-.mt-space-md { margin-top: 0.75rem; }
-.mt-space-lg { margin-top: 1rem; }
+.border-primary { border-color: var(--color-primary); }
+.border-primary\/20 { border-color: color-mix(in srgb, var(--color-primary) 20%, transparent); }
+.border-primary\/30 { border-color: color-mix(in srgb, var(--color-primary) 30%, transparent); }
+.border-primary\/40 { border-color: color-mix(in srgb, var(--color-primary) 40%, transparent); }
+.bg-primary\/10 { background-color: color-mix(in srgb, var(--color-primary) 10%, transparent); }
+.bg-primary\/15 { background-color: color-mix(in srgb, var(--color-primary) 15%, transparent); }
+.bg-primary\/20 { background-color: color-mix(in srgb, var(--color-primary) 20%, transparent); }
 
-.pt-space-xs { padding-top: 0.25rem; }
-.pt-space-sm { padding-top: 0.5rem; }
-.pb-space-xs { padding-bottom: 0.25rem; }
-.pb-space-sm { padding-bottom: 0.5rem; }
-.pb-space-2xl { padding-bottom: 2rem; }
-
-.gap-space-xs { gap: 0.25rem; }
-.gap-space-sm { gap: 0.5rem; }
-.gap-space-md { gap: 0.75rem; }
-.gap-space-lg { gap: 1rem; }
-
-/* Typography */
-.font-display-lg {
-  font-family: 'Space Grotesk', sans-serif;
-  font-size: 32px;
-  line-height: 40px;
-  letter-spacing: -0.02em;
-  font-weight: 700;
-}
-.text-display-lg {
-  font-size: 32px;
-  line-height: 40px;
-}
-
-.font-headline-lg {
-  font-family: 'Space Grotesk', sans-serif;
-  font-size: 24px;
-  line-height: 32px;
-  letter-spacing: -0.01em;
-  font-weight: 600;
-}
-.text-headline-lg {
-  font-size: 24px;
-  line-height: 32px;
-}
-
-.font-headline-md {
-  font-family: 'Space Grotesk', sans-serif;
-  font-size: 20px;
-  line-height: 28px;
-  letter-spacing: -0.01em;
-  font-weight: 600;
-}
-.text-headline-md {
-  font-size: 20px;
-  line-height: 28px;
-}
-
-.font-headline-sm {
-  font-family: 'Space Grotesk', sans-serif;
-  font-size: 16px;
-  line-height: 24px;
-  font-weight: 600;
-}
-.text-headline-sm {
-  font-size: 16px;
-  line-height: 24px;
-}
-
-.font-body-lg {
-  font-family: 'Inter', sans-serif;
-  font-size: 16px;
-  line-height: 24px;
-}
-.font-body-md {
-  font-family: 'Inter', sans-serif;
-  font-size: 14px;
-  line-height: 20px;
-}
-.text-body-md {
-  font-size: 14px;
-  line-height: 20px;
-}
-.font-body-sm {
-  font-family: 'Inter', sans-serif;
-  font-size: 12px;
-  line-height: 16px;
-  letter-spacing: 0.01em;
-}
-.text-body-sm {
-  font-size: 12px;
-  line-height: 16px;
-}
-
-.font-data-mono-lg {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 20px;
-  line-height: 28px;
-  letter-spacing: -0.02em;
-  font-weight: 600;
-}
-.font-data-mono-md {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 14px;
-  line-height: 20px;
-  font-weight: 500;
-}
-.text-data-mono-md {
-  font-size: 14px;
-  line-height: 20px;
-}
-.font-data-mono-sm {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
-  line-height: 16px;
-  letter-spacing: 0.02em;
-  font-weight: 500;
-}
-.text-data-mono-sm {
-  font-size: 11px;
-  line-height: 16px;
-}
-
-.font-label-caps {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
-  line-height: 14px;
-  letter-spacing: 0.08em;
-  font-weight: 600;
-}
-.text-label-caps {
-  font-size: 10px;
-  line-height: 14px;
-}
+/* Font Family definitions */
+.font-mono { font-family: 'JetBrains Mono', monospace; }
+.font-sans { font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
 
 /* Material Symbols configuration */
 .material-symbols-outlined {
   font-family: 'Material Symbols Outlined';
   font-weight: normal;
   font-style: normal;
-  font-size: 20px;
+  font-size: 18px;
   line-height: 1;
   letter-spacing: normal;
   text-transform: none;

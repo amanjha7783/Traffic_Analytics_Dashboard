@@ -36,6 +36,10 @@ def get_db_connection() -> Generator[sqlite3.Connection, None, None]:
         conn.close()
 
 
+# Ergonomic alias
+get_db = get_db_connection
+
+
 def init_db():
     """Create all required tables and seed initial reference data."""
     os.makedirs(DB_DIR, exist_ok=True)
@@ -361,6 +365,12 @@ def init_db():
             (category, length_m, width_m, projected_area_m2, min_length_m, max_length_m, min_width_m, max_width_m, data_source)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, dimensions)
+
+        try:
+            from app.video_intelligence.database import init_studio_db
+            init_studio_db()
+        except Exception as err:
+            logger.warning(f"Could not initialize Video Intelligence Studio tables: {err}")
 
         logger.info("Database initialized successfully at %s", DB_PATH)
 

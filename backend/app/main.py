@@ -14,6 +14,7 @@ from app.routes import (
     corridors,
     video_processing,
     websockets,
+    video_intelligence,
 )
 
 
@@ -54,3 +55,8 @@ app.include_router(
     tags=["Recorded Video Processing"],
 )
 app.include_router(websockets.router, prefix="/api/ws", tags=["Live Updates"])
+app.include_router(
+    video_intelligence.router,
+    prefix="/api/video-intelligence",
+    tags=["Video Intelligence Studio"],
+)
